@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recruiter-Me · Practise job interviews with an AI recruiter</title>
+  <meta name="description" content="Practise a job interview with an AI recruiter in your language and get an honest scorecard. Free, no sign-up, nothing stored.">
+  <meta name="theme-color" content="#16243D">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Recruiter-Me · Practise job interviews with an AI recruiter">
+  <meta property="og:description" content="One question at a time, in your language, with an honest scorecard at the end. Free, no sign-up.">
+  <meta property="og:url" content="https://dhanush-satish-reddy.github.io/recruiter-me/">
+  <meta property="og:image" content="https://dhanush-satish-reddy.github.io/recruiter-me/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preload" href="fonts/newsreader-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-view="home">
+  <a class="skip" href="#setup" data-t="skip">Skip to the interview form</a>
+
+  <header class="bar">
+    <a class="brand" href="./" aria-label="Recruiter-Me home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7h20v13H15l-6 5v-5H6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M11 13.5h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <span>Recruiter-Me</span>
+    </a>
+    <button class="lang-switch" type="button" id="langSwitch" data-t="langSwitch">Deutsch</button>
+  </header>
+
+  <!-- HOME + SETUP -->
+  <main id="home" class="view">
+    <section class="hero" aria-labelledby="heroQ">
+      <p class="hero-q" id="heroQ" aria-live="off"><span id="heroText" lang="en">Tell me about yourself.</span></p>
+      <div class="hero-body">
+        <p class="hero-lead" data-t="heroLead">Practise a job interview with an AI recruiter, in your language.</p>
+        <p class="hero-actions">
+          <a class="btn btn-primary" href="#setup" data-t="heroCta">Set up my interview</a>
+          <span class="hero-note" data-t="heroNote">Free. No sign-up. Nothing is stored.</span>
+        </p>
+      </div>
+    </section>
+
+    <section class="steps" aria-labelledby="stepsTitle">
+      <h2 id="stepsTitle" class="visually-hidden" data-t="stepsTitle">How it works</h2>
+      <ol class="steps-list" id="stepsList"></ol>
+    </section>
+
+    <section class="setup" id="setup" aria-labelledby="formTitle" tabindex="-1">
+      <div class="setup-intro">
+        <h2 id="formTitle" data-t="formTitle">Your interview</h2>
+        <p data-t="formNote">Your answers go to the AI only to run this interview. They are not saved anywhere, and closing the tab deletes them.</p>
+      </div>
+      <form id="setupForm" novalidate>
+        <fieldset class="field">
+          <legend data-t="typeLegend">What are you applying for?</legend>
+          <div class="choices choices-4" id="typeChoices"></div>
+        </fieldset>
+
+        <div class="field jobad" id="jobAdField" hidden>
+          <label for="jobAd" data-t="jobAdLabel">Paste the job ad</label>
+          <p class="hint" id="jobAdHint" data-t="jobAdHint"></p>
+          <textarea id="jobAd" rows="9" aria-describedby="jobAdHint jobAdCount"></textarea>
+          <p class="count" id="jobAdCount" aria-live="polite"></p>
+        </div>
+
+        <fieldset class="field">
+          <legend data-t="styleLegend">How strict should the recruiter be?</legend>
+          <div class="choices choices-3" id="styleChoices"></div>
+        </fieldset>
+
+        <div class="field-row">
+          <fieldset class="field">
+            <legend data-t="lengthLegend">Length</legend>
+            <div class="choices choices-col" id="lengthChoices"></div>
+          </fieldset>
+          <div class="field">
+            <label for="language" data-t="languageLabel">Interview language</label>
+            <select id="language" aria-describedby="languageHint"></select>
+            <p class="hint" id="languageHint" data-t="languageHint"></p>
+          </div>
+        </div>
+
+        <div class="field consent">
+          <label class="check">
+            <input type="checkbox" id="consent">
+            <span data-t="consent">I understand this is an AI practice tool.</span>
+          </label>
+          <a href="privacy.html" class="small-link" data-t="privacyLink">How your data is handled</a>
+        </div>
+
+        <div id="turnstile" class="turnstile"></div>
+        <p class="form-error" id="setupError" role="alert" hidden></p>
+        <button class="btn btn-primary btn-large" type="submit" id="startBtn" data-t="start">Start interview</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- INTERVIEW -->
+  <main id="interview" class="view" hidden>
+    <div class="room">
+      <aside class="agenda" aria-label="Progress">
+        <p class="agenda-progress" id="progressText" aria-live="polite"></p>
+        <ol class="agenda-dots" id="progressDots" aria-hidden="true"></ol>
+        <p class="agenda-setup" id="setupSummary"></p>
+        <button class="btn btn-quiet" type="button" id="finishBtn" data-t="finishEarly" disabled>End and get my scorecard</button>
+        <button class="btn btn-quiet" type="button" id="restartBtn" data-t="restart">Start over</button>
+      </aside>
+
+      <section class="talk" aria-label="Interview">
+        <div class="transcript" id="transcript" aria-live="polite" aria-relevant="additions"></div>
+        <p class="thinking" id="thinking" hidden><span class="thinking-dot"></span><span id="thinkingText"></span></p>
+        <p class="form-error" id="turnError" role="alert" hidden></p>
+
+        <form class="answer" id="answerForm" novalidate>
+          <label for="answer" class="visually-hidden" data-t="answerLabel">Your answer</label>
+          <textarea id="answer" rows="4" aria-describedby="answerMeta"></textarea>
+          <div class="answer-meta" id="answerMeta">
+            <span id="answerCount"></span>
+            <span class="kbd-hint" data-t="answerHint">Ctrl + Enter sends</span>
+            <button class="btn btn-primary" type="submit" id="sendBtn" data-t="send">Send answer</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- REPORT -->
+  <main id="report" class="view" hidden>
+    <article class="sheet" id="sheet" aria-labelledby="reportTitle"></article>
+  </main>
+
+  <footer class="foot">
+    <p>
+      <span data-t="footerBuilt">Built by</span>
+      <a id="ownerLink" href="#">Dhanush Satish Reddy</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a id="ownerMail" href="#">E-mail</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a id="repoLink" href="#" data-t="footerCode">Source code on GitHub</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a href="privacy.html" data-t="footerPrivacy">Privacy</a>
+      <span class="sep" aria-hidden="true">/</span>
+      <a id="imprintLink" href="#" data-t="footerImprint">Imprint</a>
+    </p>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

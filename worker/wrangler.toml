@@ -1,0 +1,41 @@
+# Cloudflare Worker configuration for Recruiter-Me.
+# Secrets (GROQ_API_KEY, TURNSTILE_SECRET) are NOT in this file.
+# They are added in the Cloudflare dashboard: Worker > Settings > Variables and Secrets.
+
+name = "recruiter-me"
+main = "src/index.js"
+compatibility_date = "2026-11-15"
+workers_dev = true
+
+# Lets the code import playbook.md as plain text
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
+
+# Backup AI (free daily allowance, fails instead of charging on the Free plan)
+[ai]
+binding = "AI"
+
+# Anonymous counters for rate limits and stats (no conversation content)
+[[d1_databases]]
+binding = "DB"
+database_name = "recruiter-me"
+database_id = "06a43289-83fa-4229-b702-ebc51eb70bc0"
+
+[vars]
+# Only these websites may use the backend
+ALLOWED_ORIGINS = "https://dhanush-satish-reddy.github.io"
+
+GROQ_MODEL = "openai/gpt-oss-120b"
+FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it"
+
+# Abuse protection. All limits reset daily at 00:00 UTC.
+DAILY_INTERVIEWS = "25"               # interviews per day, all visitors together
+DAILY_AI_CALLS = "180"                # AI calls per day, all visitors together
+MAX_INTERVIEWS_PER_VISITOR_DAY = "3"  # interviews per visitor per day
+MAX_CALLS_PER_VISITOR_HOUR = "20"     # messages per visitor per hour
+MAX_CALLS_PER_SESSION = "14"          # messages within one interview
+
+[observability]
+enabled = true
