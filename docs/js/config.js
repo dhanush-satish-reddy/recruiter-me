@@ -4,10 +4,10 @@ window.RM_CONFIG = (() => {
   const local = ["localhost", "127.0.0.1"].includes(location.hostname);
   return {
     // Address of the backend (Cloudflare Worker)
-    API_URL: local ? "http://localhost:8787" : "https://recruiter-me.REPLACE-WITH-SUBDOMAIN.workers.dev",
+    API_URL: local ? "http://localhost:8787" : "https://recruiter-me.dhanushreddy200293.workers.dev",
 
     // Cloudflare Turnstile site key (public). The test key below always passes.
-    TURNSTILE_SITE_KEY: local ? "1x00000000000000000000AA" : "REPLACE-WITH-TURNSTILE-SITE-KEY",
+    TURNSTILE_SITE_KEY: local ? "1x00000000000000000000AA" : "0x4AAAAAAGMVhB7UA_UMIZYu",
     SKIP_TURNSTILE: local,
 
     // Builder credit in the footer
