@@ -131,7 +131,7 @@ a:hover { text-decoration-thickness: 2px; }
   font: 400 clamp(2.6rem, 8.2vw, 6.6rem)/1.04 var(--serif);
   letter-spacing: -0.02em;
   color: var(--navy);
-  min-height: 2.15em;
+  min-height: 2.85em;   /* fits the tallest script, so the page never jumps */
   position: relative;
   padding-left: clamp(1rem, 2.6vw, 2rem);
   border-left: 3px solid var(--brass);
@@ -139,6 +139,12 @@ a:hover { text-decoration-thickness: 2px; }
 /* Two stacked layers crossfade: never a moving, half-drawn or empty frame. */
 .hero-q { display: grid; }
 .hero-q span { grid-area: 1 / 1; transition: opacity .7s ease; white-space: pre-line; }
+/* Indian scripts stack letters far below the line (e.g. Telugu ప్పం). Safari clips
+   fading text to its box, so give those scripts room inside the box itself. */
+.hero-q span:is(:lang(hi), :lang(kn), :lang(te), :lang(ta), :lang(pa)) {
+  line-height: 1.32; padding-bottom: .18em;
+}
+.hero-q span:is(:lang(ja), :lang(zh)) { line-height: 1.2; }
 .hero-q span.is-out { opacity: 0; }
 .hero-body { max-width: 62ch; padding-left: calc(clamp(1rem, 2.6vw, 2rem) + 3px); }
 .hero-lead { margin: 0 0 1.75rem; font-size: var(--step-1); line-height: 1.55; color: var(--ink); }
