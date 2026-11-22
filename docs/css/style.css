@@ -137,12 +137,12 @@ a:hover { text-decoration-thickness: 2px; }
   border-left: 3px solid var(--brass);
 }
 /* Two stacked layers crossfade: never a moving, half-drawn or empty frame. */
-.hero-q { display: grid; }
+.hero-q { display: grid; align-items: center; }   /* text sits centred beside the gold line */
 .hero-q span { grid-area: 1 / 1; transition: opacity .7s ease; white-space: pre-line; }
 /* Indian scripts stack letters far below the line (e.g. Telugu ప్పం). Safari clips
    fading text to its box, so give those scripts room inside the box itself. */
 .hero-q span:is(:lang(hi), :lang(kn), :lang(te), :lang(ta), :lang(pa)) {
-  line-height: 1.32; padding-bottom: .18em;
+  line-height: 1.32; padding-block: .14em;   /* even room above and below keeps it centred */
 }
 .hero-q span:is(:lang(ja), :lang(zh)) { line-height: 1.2; }
 .hero-q span.is-out { opacity: 0; }
