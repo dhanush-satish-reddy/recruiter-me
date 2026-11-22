@@ -302,6 +302,10 @@ async function callGroq(env, model, messages, mode) {
     err.status = r.status;
     // A daily limit (tokens or requests per day) means: skip this model until tomorrow.
     err.dailyLimit = r.status === 429 && /per day|\bTPD\b|\bRPD\b/i.test(detail);
+    // How long Groq asks us to wait before retrying (per-minute limits).
+    const ra = Number(r.headers.get("retry-after"));
+    const m = detail.match(/try again in ([\d.]+)s/i);
+    err.retryAfter = Number.isFinite(ra) && ra > 0 ? ra : m ? Number(m[1]) : null;
     throw err;
   }
   const data = await r.json();
@@ -335,14 +339,24 @@ async function askAI(env, db, messages, mode) {
     const done = await exhaustedModels(db);
     for (const model of groqModels(env)) {
       if (done.has(modelKey(model))) continue;
-      try {
-        const text = await callGroq(env, model, messages, mode);
-        if (model !== groqModels(env)[0]) await stat(db, `model:${model}`);
-        return { text, provider: model };
-      } catch (e) {
-        console.log(`Groq ${model} failed:`, e.message);
-        if (e.dailyLimit) await bump(db, modelKey(model)).catch(() => {});
-        else allDaily = false;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const text = await callGroq(env, model, messages, mode);
+          if (model !== groqModels(env)[0]) await stat(db, `model:${model}`);
+          return { text, provider: model };
+        } catch (e) {
+          console.log(`Groq ${model} failed:`, e.message);
+          // Failure reason without any content, so problems can be diagnosed.
+          await stat(db, `fail:${model}:${e.status || e.name || "error"}${e.dailyLimit ? ":day" : ""}`);
+          if (e.dailyLimit) { await bump(db, modelKey(model)).catch(() => {}); break; }
+          allDaily = false;
+          // Per-minute limit with a short wait: wait once, then retry the same model.
+          if (attempt === 1 && e.status === 429 && e.retryAfter && e.retryAfter <= 8) {
+            await new Promise((res) => setTimeout(res, Math.ceil(e.retryAfter * 1000) + 250));
+            continue;
+          }
+          break;
+        }
       }
     }
   }
@@ -352,6 +366,7 @@ async function askAI(env, db, messages, mode) {
     return { text, provider: "workers-ai" };
   } catch (e) {
     console.log("Workers AI failed:", e.message);
+    await stat(db, `fail:workers-ai:${String(e.message || "error").slice(0, 40)}`);
     // Every free model has used up its daily allowance: say so clearly.
     if (env.GROQ_API_KEY && allDaily) throw new HttpError(429, "daily_limit");
     throw new HttpError(503, "ai_unavailable");
