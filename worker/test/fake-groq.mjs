@@ -10,8 +10,15 @@ http.createServer((req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {
-    const { model, reasoning_effort } = JSON.parse(body);
+    const { model, reasoning_effort, messages = [] } = JSON.parse(body);
     calls.push({ model, reasoning_effort: reasoning_effort ?? null });
+    // Like the real API: messages may only contain role and content.
+    const extra = messages.flatMap((m) => Object.keys(m).filter((k) => k !== "role" && k !== "content"));
+    if (extra.length) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { message: `property '${extra[0]}' is unsupported` } }));
+      return;
+    }
     if (minuteLimited.has(model)) {
       minuteLimited.delete(model);
       res.writeHead(429, { "Content-Type": "application/json", "retry-after": "1" });

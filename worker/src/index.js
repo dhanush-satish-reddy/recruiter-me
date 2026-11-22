@@ -500,7 +500,11 @@ async function handleTurn(request, env, db, body, mode) {
   await enforceGlobalAiLimit(env, db);
 
   if (mode === "chat") {
-    const messages = [{ role: "system", content: buildInterviewSystem(setup) }, ...msgs];
+    // Only role and content go to the AI; signatures are for the backend only.
+    const messages = [
+      { role: "system", content: buildInterviewSystem(setup) },
+      ...msgs.map(({ role, content }) => ({ role, content })),
+    ];
     const { text } = await askAI(env, db, messages, "chat");
     const reply = guardReply(text);
     if (!reply) {

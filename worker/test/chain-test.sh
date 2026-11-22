@@ -30,6 +30,16 @@ run_case() { # $1 = models used up for today, $2 = models with one per-minute li
     -d "{\"setup\":$setup,\"turnstileToken\":\"x\"}" localhost:8787/api/start)
   R2=$(curl -s -H Content-Type:application/json -H Origin:http://localhost:8000 \
     -d "{\"setup\":$setup,\"turnstileToken\":\"x\"}" localhost:8787/api/start)
+  # Second step: answer the first question (the recruiter message carries its signature).
+  local tok reply sig
+  tok=$(echo "$R1" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(JSON.parse(d).token||"")}catch{}})')
+  T1=""
+  if [ -n "$tok" ]; then
+    T1=$(echo "$R1" | node -e '
+      let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const r=JSON.parse(d);
+      process.stdout.write(JSON.stringify({token:r.token,setup:'"$setup"',messages:[{role:"assistant",content:r.reply,sig:r.sig},{role:"user",content:"I like building things."}]}))})' \
+      | curl -s -H Content-Type:application/json -H Origin:http://localhost:8000 -d @- localhost:8787/api/turn)
+  fi
   CALLS=$(curl -s localhost:8799/calls)
 }
 
@@ -37,6 +47,7 @@ echo "Model chain tests"
 
 run_case ""
 check "main model answers when nothing is used up" "$(echo "$R1" | grep -q 'Hello from openai/gpt-oss-120b' && echo 1)"
+check "second message (with signed recruiter message) gets a reply" "$(echo "$T1" | grep -q '"reply":"\[Q1/3\] Hello from openai/gpt-oss-120b' && echo 1)"
 
 run_case "openai/gpt-oss-120b"
 check "switches to the next model when the main one is used up" "$(echo "$R1" | grep -q 'Hello from openai/gpt-oss-20b' && echo 1)"
