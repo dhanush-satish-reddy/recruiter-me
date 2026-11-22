@@ -237,33 +237,52 @@ function mockAI(messages, mode) {
   return `[Q${asked + 1}/${total}] Mock question number ${asked + 1}?`;
 }
 
-async function callGroq(env, messages, mode) {
+// Groq's free limits apply per model, so a chain of production models
+// multiplies the free daily capacity. Each model stays within its own limit.
+function groqModels(env) {
+  return (env.GROQ_MODELS || "openai/gpt-oss-120b").split(",").map((m) => m.trim()).filter(Boolean);
+}
+
+async function callGroq(env, model, messages, mode) {
   const body = {
-    model: env.GROQ_MODEL || "openai/gpt-oss-120b",
+    model,
     messages,
     temperature: mode === "report" ? 0.3 : 0.7,
     max_completion_tokens: mode === "report" ? 2200 : 600,
+  };
+  if (model.startsWith("openai/gpt-oss")) {
     // The scorecard gets more thinking time: it must follow the language and
     // no-invented-facts rules strictly. Interview questions stay fast.
-    reasoning_effort: mode === "report" ? "medium" : "low",
-    include_reasoning: false,
-  };
+    body.reasoning_effort = mode === "report" ? "medium" : "low";
+    body.include_reasoning = false;
+  }
   if (mode === "report") body.response_format = { type: "json_object" };
-  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  // A different address is only accepted in local development, for tests.
+  const base = env.DEV_MODE === "1" && env.GROQ_BASE_URL ? env.GROQ_BASE_URL : "https://api.groq.com/openai/v1";
+  const r = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(30000),
   });
   if (!r.ok) {
+    const detail = await r.text().catch(() => "");
     const err = new Error(`groq_${r.status}`);
     err.status = r.status;
+    // A daily limit (tokens or requests per day) means: skip this model until tomorrow.
+    err.dailyLimit = r.status === 429 && /per day|\bTPD\b|\bRPD\b/i.test(detail);
     throw err;
   }
   const data = await r.json();
   const text = data?.choices?.[0]?.message?.content;
   if (!text) throw new Error("groq_empty");
   return text;
+}
+
+const modelKey = (model) => `x:${model}`;
+async function exhaustedModels(db) {
+  const { results } = await db.prepare("SELECT key FROM counters WHERE day = ? AND key LIKE 'x:%'").bind(today()).all();
+  return new Set((results || []).map((r) => r.key));
 }
 
 async function callWorkersAI(env, messages, mode) {
@@ -280,11 +299,20 @@ async function callWorkersAI(env, messages, mode) {
 
 async function askAI(env, db, messages, mode) {
   if (env.DEV_MODE === "1" && env.MOCK_AI === "1") return { text: mockAI(messages, mode), provider: "mock" };
+  let allDaily = true;
   if (env.GROQ_API_KEY) {
-    try {
-      return { text: await callGroq(env, messages, mode), provider: "groq" };
-    } catch (e) {
-      console.log("Groq failed, using fallback:", e.message);
+    const done = await exhaustedModels(db);
+    for (const model of groqModels(env)) {
+      if (done.has(modelKey(model))) continue;
+      try {
+        const text = await callGroq(env, model, messages, mode);
+        if (model !== groqModels(env)[0]) await stat(db, `model:${model}`);
+        return { text, provider: model };
+      } catch (e) {
+        console.log(`Groq ${model} failed:`, e.message);
+        if (e.dailyLimit) await bump(db, modelKey(model)).catch(() => {});
+        else allDaily = false;
+      }
     }
   }
   try {
@@ -293,6 +321,8 @@ async function askAI(env, db, messages, mode) {
     return { text, provider: "workers-ai" };
   } catch (e) {
     console.log("Workers AI failed:", e.message);
+    // Every free model has used up its daily allowance: say so clearly.
+    if (env.GROQ_API_KEY && allDaily) throw new HttpError(429, "daily_limit");
     throw new HttpError(503, "ai_unavailable");
   }
 }
@@ -368,6 +398,10 @@ async function handleStart(request, env, db, body) {
   const vid = await visitorId(request, db);
 
   if ((await peek(db, "global:interviews")) >= num(env.DAILY_INTERVIEWS, 25)) throw new HttpError(429, "daily_limit");
+  if (env.GROQ_API_KEY && env.DEV_MODE !== "1") {
+    const done = await exhaustedModels(db);
+    if (groqModels(env).every((m) => done.has(modelKey(m)))) throw new HttpError(429, "daily_limit");
+  }
   if ((await peek(db, `v:${vid}:interviews`)) >= num(env.MAX_INTERVIEWS_PER_VISITOR_DAY, 3)) throw new HttpError(429, "visitor_daily_limit");
 
   await verifyTurnstile(env, body.turnstileToken, ip);

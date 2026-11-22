@@ -33,7 +33,7 @@ flowchart LR
 
 - **Front end:** plain HTML, CSS and JavaScript on GitHub Pages. No framework, no build step, no trackers, self-hosted fonts.
 - **Backend:** one Cloudflare Worker. It is the only place that knows the AI API key, so the key never reaches the browser.
-- **AI:** Groq's free tier (`openai/gpt-oss-120b`), with Cloudflare Workers AI as an automatic fallback.
+- **AI:** Groq's free tier. Free limits apply per model, so the backend uses a chain of production models (`gpt-oss-120b`, then `gpt-oss-20b`, then `llama-3.3-70b-versatile`). A model that has used up its daily allowance is skipped until the next day, and Cloudflare Workers AI is the last fallback.
 - **State:** the conversation lives only in the visitor's browser tab. The Worker is stateless apart from anonymous daily counters.
 
 ## Security and abuse protection
@@ -43,7 +43,7 @@ flowchart LR
 | Stolen API key | Key stored as a Cloudflare secret. The website never sees it. |
 | Bots draining the free quota | Cloudflare Turnstile check before every interview. |
 | One person spamming | Max 3 interviews per visitor per day, 20 messages per hour, 14 messages per interview. |
-| Many people at once | Global cap of 25 interviews and 180 AI calls per day, set below the provider's free limits. |
+| Many people at once | Global cap of 60 interviews and 900 AI calls per day. When every free model has used up its daily allowance, new interviews are refused with a clear "come back tomorrow" instead of failing halfway. |
 | Huge inputs | Answers ≤ 1,200 characters, job ads ≤ 6,000, request body ≤ 64 KB. |
 | Other websites using the backend | Only requests from this site's origin are accepted (CORS allow-list). |
 | Forged or replayed sessions | HMAC-signed session tokens that expire after 1 hour. |
@@ -61,7 +61,7 @@ Every service runs on a free plan with no payment method on file. On these plans
 | Cloudflare Workers | 100,000 requests/day | Requests fail until midnight UTC |
 | Cloudflare D1 | 5M rows read, 100k rows written per day | Queries fail until midnight UTC |
 | Cloudflare Turnstile | Free, no request cap | — |
-| Groq API (free tier) | Per-model daily request and token limits | API returns HTTP 429 and the Worker falls back |
+| Groq API (free tier) | Per model: 1,000 requests and 200,000 tokens per day | API returns HTTP 429, and the Worker moves to the next model |
 | Cloudflare Workers AI | 10,000 Neurons/day | Calls fail, and the visitor sees "come back tomorrow" |
 
 Google's Gemini free tier was considered and rejected: its terms only allow paid services for apps offered to users in the EEA, Switzerland and the UK.
@@ -129,7 +129,7 @@ cd worker && node test/api-test.mjs
 
 ## Known limitations
 
-- The free AI quota covers roughly a dozen full interviews a day. On a busy day, visitors are asked to come back tomorrow.
+- The free AI quota covers a few dozen full interviews a day. On a busy day, visitors are asked to come back tomorrow.
 - AI feedback can be wrong. The scorecard says so and should be read as a second opinion.
 - The pattern filter for prompt injection only covers English and German phrases. Other languages rely on the model's rules and the output check.
 

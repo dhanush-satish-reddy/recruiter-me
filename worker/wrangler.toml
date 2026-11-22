@@ -27,12 +27,13 @@ database_id = "06a43289-83fa-4229-b702-ebc51eb70bc0"
 # Only these websites may use the backend
 ALLOWED_ORIGINS = "https://dhanush-satish-reddy.github.io"
 
-GROQ_MODEL = "openai/gpt-oss-120b"
+# Tried in this order. Free limits apply per model, so the chain multiplies daily capacity.
+GROQ_MODELS = "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.3-70b-versatile"
 FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it"
 
 # Abuse protection. All limits reset daily at 00:00 UTC.
-DAILY_INTERVIEWS = "25"               # interviews per day, all visitors together
-DAILY_AI_CALLS = "180"                # AI calls per day, all visitors together
+DAILY_INTERVIEWS = "60"               # interviews per day, all visitors together
+DAILY_AI_CALLS = "900"                # AI calls per day, all visitors together (below 1,000 requests/day per model)
 MAX_INTERVIEWS_PER_VISITOR_DAY = "3"  # interviews per visitor per day
 MAX_CALLS_PER_VISITOR_HOUR = "20"     # messages per visitor per hour
 MAX_CALLS_PER_SESSION = "14"          # messages within one interview
