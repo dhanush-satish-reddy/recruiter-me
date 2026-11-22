@@ -1,4 +1,4 @@
-// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
+// © 2026 Dhanush Satish Reddy. All rights reserved. See LICENSE.
 // Recruiter-Me backend (Cloudflare Worker)
 // - Keeps the AI API key secret (it never reaches the browser)
 // - Verifies Cloudflare Turnstile (bot check) when an interview starts

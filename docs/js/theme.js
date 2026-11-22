@@ -1,4 +1,4 @@
-// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
+// © 2026 Dhanush Satish Reddy. All rights reserved. See LICENSE.
 // Applies the saved light/dark choice before the page paints (no flash).
 // Without a saved choice, the page follows the device's dark-mode setting.
 (function () {

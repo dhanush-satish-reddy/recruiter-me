@@ -1,4 +1,4 @@
-// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
+// © 2026 Dhanush Satish Reddy. All rights reserved. See LICENSE.
 // All interface texts in English and German.
 // The INTERVIEW itself can run in many more languages (chosen in the form).
 // Hero question, in this order, looping continuously: European languages first, then Indian languages.
@@ -123,6 +123,7 @@ window.RM_TEXT = {
     },
 
     footerBuilt: "© 2026, built by",
+    footerRights: "All rights reserved",
     footerPrivacy: "Privacy",
   },
 
@@ -227,6 +228,7 @@ window.RM_TEXT = {
     },
 
     footerBuilt: "© 2026, entwickelt von",
+    footerRights: "Alle Rechte vorbehalten",
     footerPrivacy: "Datenschutz",
   },
 };

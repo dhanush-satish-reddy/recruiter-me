@@ -1,4 +1,4 @@
-// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
+// © 2026 Dhanush Satish Reddy. All rights reserved. See LICENSE.
 // Site settings. These values are public on purpose: nothing secret belongs here.
 // The AI key lives only in the Cloudflare Worker.
 window.RM_CONFIG = (() => {

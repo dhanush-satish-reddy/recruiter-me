@@ -124,10 +124,12 @@ node test/api-test.mjs           # needs the dev server from above
 bash test/chain-test.sh          # model chain against a fake Groq server (starts its own servers)
 ```
 
-## Deploy your own copy
+## How it's deployed
 
-1. Fork this repository.
-2. Cloudflare dashboard: **Workers & Pages → Create → Import a repository**, choose your fork, set the root directory to `worker`.
+This describes the live setup. Running your own copy needs written permission (see [Copyright](#copyright)).
+
+1. The repository is public on GitHub.
+2. Cloudflare dashboard: **Workers & Pages → Create → Import a repository**, root directory `worker`.
 3. Create a D1 database and put its ID in `worker/wrangler.toml`.
 4. Add the secrets `GROQ_API_KEY` and `TURNSTILE_SECRET` under **Settings → Variables and Secrets**.
 5. Put your Worker URL and Turnstile site key in `docs/js/config.js`, and your site's address in `ALLOWED_ORIGINS`.
@@ -146,6 +148,8 @@ Designed and built by **Dhanush Satish Reddy**, with code written together with 
 
 Fonts: [Newsreader](https://github.com/productiontype/Newsreader) and [Hanken Grotesk](https://github.com/marcologous/hanken-grotesk), SIL Open Font License.
 
-## License
+## Copyright
 
-© 2026 Dhanush Satish Reddy. Code: [MIT](LICENSE).
+© 2026 Dhanush Satish Reddy. All rights reserved. See [LICENSE](LICENSE).
+
+The code is public so it can be viewed and evaluated. Copying, reusing or hosting any part of it needs written permission. The fonts keep their own licence (SIL Open Font License).
