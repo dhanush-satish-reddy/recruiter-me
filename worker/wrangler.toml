@@ -40,3 +40,7 @@ MAX_CALLS_PER_SESSION = "14"          # messages within one interview
 
 [observability]
 enabled = true
+
+# Nightly cleanup of old counters (free plan includes cron triggers)
+[triggers]
+crons = ["7 0 * * *"]

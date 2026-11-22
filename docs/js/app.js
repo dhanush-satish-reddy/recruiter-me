@@ -222,7 +222,7 @@
       Object.assign(state, { setup, token: data.token, messages: [], total: setup.length, current: 0, ended: false, lastReport: null });
       $("transcript").innerHTML = "";
       setView("interview");
-      addRecruiter(data.reply);
+      addRecruiter(data.reply, data.sig);
       $("answer").focus();
     } catch (ex) {
       showError(err, ex.message);
@@ -251,8 +251,9 @@
     $("finishBtn2").disabled = !answered || state.busy;
   }
 
-  function addRecruiter(raw) {
-    state.messages.push({ role: "assistant", content: raw });
+  function addRecruiter(raw, sig) {
+    // The signature proves to the backend that this message really came from it.
+    state.messages.push({ role: "assistant", content: raw, sig });
     const r = parseReply(raw);
     if (r.total) state.total = r.total;
     if (r.q) state.current = r.q;
@@ -318,7 +319,7 @@
         note.textContent = t().blocked;
         bubble.after(note);
       } else {
-        addRecruiter(data.reply);
+        addRecruiter(data.reply, data.sig);
       }
     } catch (ex) {
       state.messages.pop();

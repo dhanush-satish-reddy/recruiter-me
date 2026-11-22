@@ -9,6 +9,7 @@ import {
   CANARY, TYPES, STYLES, LENGTHS,
   buildInterviewSystem, buildReportSystem, looksLikeInjection,
 } from "./prompts.js";
+import { stripInventedNumbers } from "./guards.js";
 
 const LIMITS = {
   jobAdChars: 6000,
@@ -27,6 +28,7 @@ const LANGUAGES = [
 
 const enc = new TextEncoder();
 const today = () => new Date().toISOString().slice(0, 10);
+const yesterday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 const hourKey = () => new Date().toISOString().slice(11, 13);
 const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
 
@@ -103,16 +105,16 @@ async function getSecret(db) {
   return cachedSecret;
 }
 
-async function bump(db, key, by = 1) {
+async function bump(db, key, by = 1, day = today()) {
   const row = await db
     .prepare("INSERT INTO counters (day, key, n) VALUES (?, ?, ?) ON CONFLICT (day, key) DO UPDATE SET n = n + excluded.n RETURNING n")
-    .bind(today(), key, by)
+    .bind(day, key, by)
     .first();
   return row.n;
 }
 
-async function peek(db, key) {
-  const row = await db.prepare("SELECT n FROM counters WHERE day = ? AND key = ?").bind(today(), key).first();
+async function peek(db, key, day = today()) {
+  const row = await db.prepare("SELECT n FROM counters WHERE day = ? AND key = ?").bind(day, key).first();
   return row ? row.n : 0;
 }
 
@@ -129,8 +131,14 @@ async function visitorId(request, db) {
   return (await sha256hex(`${today()}|${ip}|${secret}`)).slice(0, 16);
 }
 
+// Runs every night (cron) and occasionally on requests. Visitor rows (hashed
+// IPs) are deleted once their day is over. Session rows are kept one extra day
+// so an interview running across midnight keeps its message count.
 async function cleanup(db) {
-  await db.prepare("DELETE FROM counters WHERE day < ? AND key NOT LIKE 'stat:%'").bind(today()).run();
+  await db.batch([
+    db.prepare("DELETE FROM counters WHERE day < ? AND key NOT LIKE 'stat:%' AND key NOT LIKE 's:%'").bind(today()),
+    db.prepare("DELETE FROM counters WHERE day < ? AND key LIKE 's:%'").bind(yesterday()),
+  ]);
 }
 
 // ---------- session tokens ----------
@@ -152,6 +160,21 @@ async function readToken(db, token) {
   const payload = JSON.parse(new TextDecoder().decode(fromB64u(body)));
   if (Date.now() > payload.exp) throw new HttpError(401, "session_expired");
   return payload;
+}
+
+// Every recruiter message is signed by the backend. The browser has to send the
+// signature back, so it cannot invent or edit recruiter messages.
+async function signMessage(db, sid, content) {
+  const key = await hmacKey(await getSecret(db));
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`${sid}|${content}`));
+  return b64u(sig).slice(0, 32);
+}
+
+async function verifyRecruiterMessages(db, sid, msgs) {
+  for (const m of msgs) {
+    if (m.role !== "assistant") continue;
+    if (!m.sig || m.sig !== (await signMessage(db, sid, m.content))) throw new HttpError(400, "bad_messages");
+  }
 }
 
 // ---------- input validation ----------
@@ -183,10 +206,11 @@ function validateMessages(raw) {
     const role = m && m.role === "assistant" ? "assistant" : m && m.role === "user" ? "user" : null;
     const content = clean(m && m.content);
     if (!role || !content) throw new HttpError(400, "bad_messages");
+    const sig = role === "assistant" ? String((m && m.sig) || "") : undefined;
     const max = role === "user" ? LIMITS.answerChars : LIMITS.assistantChars;
     if (content.length > max) throw new HttpError(400, role === "user" ? "answer_too_long" : "bad_messages");
     total += content.length;
-    return { role, content };
+    return sig === undefined ? { role, content } : { role, content, sig };
   });
   if (total > LIMITS.totalChars) throw new HttpError(400, "too_long_overall");
   if (msgs[0].role !== "assistant" || msgs[msgs.length - 1].role !== "user") throw new HttpError(400, "bad_messages");
@@ -203,8 +227,15 @@ async function verifyTurnstile(env, token, ip) {
   form.append("secret", env.TURNSTILE_SECRET);
   form.append("response", token);
   if (ip) form.append("remoteip", ip);
-  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
-  const data = await r.json().catch(() => ({}));
+  let data = {};
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST", body: form, signal: AbortSignal.timeout(8000),
+    });
+    data = await r.json();
+  } catch {
+    throw new HttpError(503, "bot_check_failed");
+  }
   if (!data.success) throw new HttpError(403, "bot_check_failed");
   return true;
 }
@@ -333,16 +364,6 @@ function guardReply(text) {
   return text;
 }
 
-// Safety net against invented facts: any number in the example answer that the
-// candidate never wrote is replaced with a placeholder.
-function stripInventedNumbers(answer, candidateText) {
-  const said = new Set((candidateText.match(/\d+(?:[.,]\d+)?/g) || []).map((n) => n.replace(",", ".")));
-  return answer.replace(/\d+(?:[.,]\d+)?(\s?%)?/g, (m, pct) => {
-    const n = m.replace(/\s?%$/, "").replace(",", ".");
-    return said.has(n) ? m : pct ? "[number] %" : "[number]";
-  });
-}
-
 function parseReport(text, candidateText = "") {
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) return null;
@@ -379,14 +400,24 @@ function parseReport(text, candidateText = "") {
 
 // ---------- limits ----------
 
-async function enforceCallLimits(env, db, vid, sid) {
+// Per-visitor and per-interview limits. They count EVERY message, including
+// ones blocked by the trick filter. Counters are only written while under the
+// limit, so someone hammering the API past it causes reads, not writes.
+async function enforceVisitorLimits(env, db, vid, session) {
   const perHour = num(env.MAX_CALLS_PER_VISITOR_HOUR, 20);
   const perSession = num(env.MAX_CALLS_PER_SESSION, 14);
-  const perDay = num(env.DAILY_AI_CALLS, 180);
+  const hourKeyName = `v:${vid}:h${hourKey()}`;
+  const sessionKey = `s:${session.sid}`;
+  const sessionDay = session.day || today();
+  if ((await peek(db, hourKeyName)) >= perHour) throw new HttpError(429, "visitor_limit");
+  if ((await peek(db, sessionKey, sessionDay)) >= perSession) throw new HttpError(429, "session_limit");
+  await bump(db, hourKeyName);
+  await bump(db, sessionKey, 1, sessionDay);
+}
 
-  if ((await peek(db, "global:ai_calls")) >= perDay) throw new HttpError(429, "daily_limit");
-  if ((await bump(db, `v:${vid}:h${hourKey()}`)) > perHour) throw new HttpError(429, "visitor_limit");
-  if ((await bump(db, `s:${sid}`)) > perSession) throw new HttpError(429, "session_limit");
+// Global daily cap on AI calls, checked only when the AI is really called.
+async function enforceGlobalAiLimit(env, db) {
+  if ((await peek(db, "global:ai_calls")) >= num(env.DAILY_AI_CALLS, 180)) throw new HttpError(429, "daily_limit");
   await bump(db, "global:ai_calls");
 }
 
@@ -408,13 +439,9 @@ async function handleStart(request, env, db, body) {
 
   if (Math.random() < 0.1) await cleanup(db);
 
-  const sid = b64u(crypto.getRandomValues(new Uint8Array(12)));
-  await enforceCallLimits(env, db, vid, sid);
-  await bump(db, "global:interviews");
-  await bump(db, `v:${vid}:interviews`);
-  await Promise.all([
-    stat(db, "started"), stat(db, `type:${setup.type}`), stat(db, `style:${setup.style}`), stat(db, `lang:${setup.language}`),
-  ]);
+  const session = { sid: b64u(crypto.getRandomValues(new Uint8Array(12))), day: today() };
+  await enforceVisitorLimits(env, db, vid, session);
+  await enforceGlobalAiLimit(env, db);
 
   const messages = [
     { role: "system", content: buildInterviewSystem(setup) },
@@ -424,23 +451,38 @@ async function handleStart(request, env, db, body) {
   const reply = guardReply(text);
   if (!reply) throw new HttpError(502, "ai_error");
 
-  const token = await makeToken(db, { sid, exp: Date.now() + 60 * 60 * 1000 });
-  return { token, reply };
+  // Only a successful start counts as an interview, so an AI outage never
+  // uses up someone's daily interviews.
+  await bump(db, "global:interviews");
+  await bump(db, `v:${vid}:interviews`);
+  await Promise.all([
+    stat(db, "started"), stat(db, `type:${setup.type}`), stat(db, `style:${setup.style}`), stat(db, `lang:${setup.language}`),
+  ]);
+
+  const token = await makeToken(db, { sid: session.sid, day: session.day, exp: Date.now() + 60 * 60 * 1000 });
+  return { token, reply, sig: await signMessage(db, session.sid, reply) };
 }
 
 async function handleTurn(request, env, db, body, mode) {
   const session = await readToken(db, body.token);
   const setup = validateSetup(body.setup);
   const msgs = validateMessages(body.messages);
-  const last = msgs[msgs.length - 1].content;
+  await verifyRecruiterMessages(db, session.sid, msgs);
 
-  if (mode === "chat" && looksLikeInjection(last)) {
+  const vid = await visitorId(request, db);
+  await enforceVisitorLimits(env, db, vid, session);
+
+  // Earlier answers were already checked when they were sent; if one of them
+  // now contains a trick, the conversation was edited in the browser.
+  const answers = msgs.filter((m) => m.role === "user");
+  if (answers.slice(0, -1).some((m) => looksLikeInjection(m.content))) throw new HttpError(400, "bad_messages");
+  if (looksLikeInjection(answers[answers.length - 1].content)) {
+    if (mode === "report") throw new HttpError(400, "bad_messages");
     await stat(db, "blocked_injection");
     return { reply: null, blocked: true };
   }
 
-  const vid = await visitorId(request, db);
-  await enforceCallLimits(env, db, vid, session.sid);
+  await enforceGlobalAiLimit(env, db);
 
   if (mode === "chat") {
     const messages = [{ role: "system", content: buildInterviewSystem(setup) }, ...msgs];
@@ -450,7 +492,7 @@ async function handleTurn(request, env, db, body, mode) {
       await stat(db, "blocked_output");
       return { reply: null, blocked: true };
     }
-    return { reply };
+    return { reply, sig: await signMessage(db, session.sid, reply) };
   }
 
   // report
@@ -470,6 +512,11 @@ async function handleTurn(request, env, db, body, mode) {
 }
 
 export default {
+  async scheduled(event, env) {
+    await ensureSchema(env.DB);
+    await cleanup(env.DB);
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "";
@@ -504,7 +551,7 @@ export default {
       return json(result, 200, okOrigin);
     } catch (e) {
       if (e instanceof HttpError) {
-        if (e.status === 429) await stat(env.DB, `limit:${e.code}`).catch(() => {});
+        if (e.status === 429) console.log("Limit reached:", e.code);
         return json({ error: e.code, ...e.extra }, e.status, okOrigin);
       }
       console.log("Unexpected error:", e && e.stack);
