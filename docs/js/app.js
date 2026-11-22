@@ -248,6 +248,7 @@
     $("setupSummary").innerHTML = [tx.types[s.type][0], tx.styles[s.style][0], langLabel].map(esc).join("<br>");
     const answered = state.messages.some((m) => m.role === "user");
     $("finishBtn").disabled = !answered || state.busy;
+    $("finishBtn2").disabled = !answered || state.busy;
   }
 
   function addRecruiter(raw) {
@@ -492,6 +493,7 @@
   });
   $("answerForm").addEventListener("submit", onSend);
   $("finishBtn").addEventListener("click", () => { if (!state.busy) makeReport(); });
+  $("finishBtn2").addEventListener("click", () => { if (!state.busy) makeReport(); });
   $("restartBtn").addEventListener("click", () => { if (window.confirm(t().confirmRestart)) resetToHome(); });
 
   applyTexts();

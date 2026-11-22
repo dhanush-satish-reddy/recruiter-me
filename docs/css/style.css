@@ -250,6 +250,7 @@ textarea:focus, select:focus { border-color: var(--navy); outline: 2px solid var
 .answer-meta { display: flex; align-items: center; gap: 1rem; margin-top: .6rem; font-size: var(--step--1); color: var(--slate); font-variant-numeric: tabular-nums; }
 .answer-meta .kbd-hint { margin-right: auto; }
 .answer-meta .over { color: var(--error); font-weight: 600; }
+.finish-inline { display: none; }
 
 /* ---------- report: an evaluation sheet ---------- */
 .sheet {
@@ -317,6 +318,8 @@ body[data-view="interview"] .foot { display: none; }
   .agenda-dots { width: 100%; margin: 0 0 .35rem; }
   .agenda-setup { display: none; }
   .agenda .btn-quiet { padding: .5rem .75rem; }
+  .agenda #finishBtn { display: none; }
+  .finish-inline { display: inline-flex; }
   .talk { min-height: calc(100vh - 12rem); }
 }
 @media (max-width: 640px) {
@@ -329,6 +332,9 @@ body[data-view="interview"] .foot { display: none; }
   .scores th, .scores td { border-bottom: 0; padding: .35rem .5rem .35rem 0; }
   .scores .comment { grid-column: 1 / -1; border-bottom: 1px solid var(--rule); padding-bottom: .85rem; }
   .kbd-hint { display: none; }
+  .answer-meta { gap: .6rem; }
+  .answer-meta > * { white-space: nowrap; }
+  .answer-meta .btn-primary { padding: .8rem 1rem; }
   .answer-meta span:first-child { margin-right: auto; }
 }
 
