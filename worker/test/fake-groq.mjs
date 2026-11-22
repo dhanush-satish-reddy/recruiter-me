@@ -7,12 +7,19 @@ const minuteLimited = new Set((process.env.RATELIMIT || "").split(",").filter(Bo
 const calls = [];
 // SLOW: answer every request this many milliseconds late (tests the time budget).
 const slow = Number(process.env.SLOW || 0);
+// BADREPORT: models that return a scorecard the backend cannot read.
+const badReport = new Set((process.env.BADREPORT || "").split(",").filter(Boolean));
+const REPORT = JSON.stringify({
+  summary: "You answered clearly.",
+  scores: ["Structure", "Relevance", "Evidence", "Motivation", "Communication"].map((c) => ({ category: c, score: 6, comment: "ok" })),
+  strengths: ["Clear"], improvements: ["More examples"], improved_answer: null, job_fit: null, next_steps: ["Practise"],
+});
 http.createServer((req, res) => {
   if (req.url === "/calls") { res.end(JSON.stringify(calls)); return; }
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => setTimeout(() => {
-    const { model, reasoning_effort, messages = [] } = JSON.parse(body);
+    const { model, reasoning_effort, messages = [], response_format } = JSON.parse(body);
     calls.push({ model, reasoning_effort: reasoning_effort ?? null });
     // Like the real API: messages may only contain role and content.
     const extra = messages.flatMap((m) => Object.keys(m).filter((k) => k !== "role" && k !== "content"));
@@ -33,6 +40,10 @@ http.createServer((req, res) => {
       return;
     }
     res.writeHead(200, { "Content-Type": "application/json" });
+    if (response_format) {   // scorecard request
+      res.end(JSON.stringify({ choices: [{ message: { content: badReport.has(model) ? '{"summary":"no scores here"}' : REPORT } }] }));
+      return;
+    }
     res.end(JSON.stringify({ choices: [{ message: { content: `[Q1/3] Hello from ${model}. Why this role?` } }] }));
   }, slow));
 }).listen(Number(process.env.PORT || 8799));

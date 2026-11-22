@@ -352,8 +352,14 @@ async function callWorkersAI(env, messages, mode, timeoutMs = 30000) {
 const AI_BUDGET_MS = { chat: 35000, report: 50000 };
 const MIN_ATTEMPT_MS = 4000;
 
-async function askAI(env, db, messages, mode) {
-  if (env.DEV_MODE === "1" && env.MOCK_AI === "1") return { text: mockAI(messages, mode), provider: "mock" };
+// `accept` (optional) checks an answer; an answer it rejects counts as a failed
+// attempt, so the next model is tried (used for the scorecard JSON).
+async function askAI(env, db, messages, mode, accept = null) {
+  if (env.DEV_MODE === "1" && env.MOCK_AI === "1") {
+    const text = mockAI(messages, mode);
+    if (accept && !accept(text)) throw new HttpError(502, "report_failed");
+    return { text, provider: "mock" };
+  }
   const deadline = Date.now() + AI_BUDGET_MS[mode];
   const left = () => deadline - Date.now();
   let allDaily = true;
@@ -365,6 +371,7 @@ async function askAI(env, db, messages, mode) {
         if (left() < MIN_ATTEMPT_MS) break;
         try {
           const text = await callGroq(env, model, messages, mode, Math.min(30000, left()));
+          if (accept && !accept(text)) throw Object.assign(new Error("unreadable"), { name: "unreadable" });
           if (model !== groqModels(env)[0]) await stat(db, `model:${model}`);
           return { text, provider: model };
         } catch (e) {
@@ -373,6 +380,7 @@ async function askAI(env, db, messages, mode) {
           await stat(db, `fail:${model}:${e.status || e.name || "error"}${e.dailyLimit ? ":day" : ""}`);
           if (e.dailyLimit) { await bump(db, modelKey(model)).catch(() => {}); break; }
           allDaily = false;
+          if (e.name === "unreadable") break;   // a bad answer: go straight to the next model
           // Per-minute limit with a short wait: wait once, then retry the same model.
           if (attempt === 1 && e.status === 429 && e.retryAfter && e.retryAfter <= 8 && left() > e.retryAfter * 1000 + MIN_ATTEMPT_MS) {
             await new Promise((res) => setTimeout(res, Math.ceil(e.retryAfter * 1000) + 250));
@@ -386,11 +394,13 @@ async function askAI(env, db, messages, mode) {
   try {
     if (left() < MIN_ATTEMPT_MS) throw new Error("no_time_left");
     const text = await callWorkersAI(env, messages, mode, left());
+    if (accept && !accept(text)) throw new Error("unreadable");
     await stat(db, "fallback_used");
     return { text, provider: "workers-ai" };
   } catch (e) {
     console.log("Workers AI failed:", e.message);
     await stat(db, `fail:workers-ai:${String(e.message || "error").slice(0, 40)}`);
+    if (e.message === "unreadable") throw new HttpError(502, "report_failed");
     // Every free model has used up its daily allowance: say so clearly.
     if (env.GROQ_API_KEY && allDaily) throw new HttpError(429, "daily_limit");
     throw new HttpError(503, "ai_unavailable");
@@ -442,14 +452,17 @@ function parseReport(text, candidateText = "") {
 // Per-visitor and per-interview limits. They count EVERY message, including
 // ones blocked by the trick filter. Counters are only written while under the
 // limit, so someone hammering the API past it causes reads, not writes.
-async function enforceVisitorLimits(env, db, nid, session) {
+// The scorecard has its own small allowance, so a long interview (or a few AI
+// hiccups) can never use up the requests needed to get the scorecard.
+async function enforceVisitorLimits(env, db, nid, session, kind = "turn") {
   const perHour = num(env.MAX_CALLS_PER_NETWORK_HOUR, 150);
-  const perSession = num(env.MAX_CALLS_PER_SESSION, 14);
+  const isReport = kind === "report";
+  const perSession = isReport ? num(env.MAX_REPORTS_PER_SESSION, 3) : num(env.MAX_CALLS_PER_SESSION, 14);
   const hourKeyName = `v:${nid}:h${hourKey()}`;
-  const sessionKey = `s:${session.sid}`;
+  const sessionKey = isReport ? `s:${session.sid}:report` : `s:${session.sid}`;
   const sessionDay = session.day || today();
   if ((await peek(db, hourKeyName)) >= perHour) throw new HttpError(429, "visitor_limit");
-  if ((await peek(db, sessionKey, sessionDay)) >= perSession) throw new HttpError(429, "session_limit");
+  if ((await peek(db, sessionKey, sessionDay)) >= perSession) throw new HttpError(429, isReport ? "report_limit" : "session_limit");
   await bump(db, hourKeyName);
   await bump(db, sessionKey, 1, sessionDay);
 }
@@ -490,7 +503,11 @@ async function handleStart(request, env, db, body) {
   ];
   const { text } = await askAI(env, db, messages, "chat");
   const reply = guardReply(text);
-  if (!reply) throw new HttpError(502, "ai_error");
+  if (!reply) {
+    console.log("Start blocked: first reply failed the output check");
+    await stat(db, "fail:start_blocked");
+    throw new HttpError(502, "ai_error");
+  }
 
   // Only a successful start counts as an interview, so an AI outage never
   // uses up someone's daily interviews.
@@ -512,7 +529,7 @@ async function handleTurn(request, env, db, body, mode) {
   await verifyRecruiterMessages(db, session.sid, msgs);
 
   const nid = await networkId(request, db);
-  await enforceVisitorLimits(env, db, nid, session);
+  await enforceVisitorLimits(env, db, nid, session, mode === "report" ? "report" : "turn");
 
   // Earlier answers were already checked when they were sent; if one of them
   // now contains a trick, the conversation was edited in the browser.
@@ -549,9 +566,16 @@ async function handleTurn(request, env, db, body, mode) {
     { role: "system", content: buildReportSystem(setup) },
     { role: "user", content: `<transcript>\n${transcript}\n</transcript>\n\nWrite the JSON report now.` },
   ];
-  const { text } = await askAI(env, db, messages, "report");
   const candidateText = msgs.filter((m) => m.role === "user").map((m) => m.content).join("\n");
-  const report = parseReport(text, candidateText);
+  let report = null;
+  try {
+    await askAI(env, db, messages, "report", (text) => (report = parseReport(text, candidateText)));
+  } catch (e) {
+    // Visible in the stats and logs, so lost scorecards can be noticed.
+    console.log("Scorecard failed:", e.code || e.message);
+    await stat(db, `fail:report:${e.code || "error"}`);
+    throw e;
+  }
   if (!report) throw new HttpError(502, "report_failed");
   await stat(db, "completed");
   return { report };
@@ -598,6 +622,7 @@ export default {
     } catch (e) {
       if (e instanceof HttpError) {
         if (e.status === 429) console.log("Limit reached:", e.code);
+        else if (e.status >= 500) console.log("Request failed:", e.code);
         return json({ error: e.code, ...e.extra }, e.status, okOrigin);
       }
       console.log("Unexpected error:", e && e.stack);

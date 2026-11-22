@@ -158,5 +158,20 @@ let token, messages;
   check("repeated blocked messages eventually hit a limit (429)", last.status === 429, JSON.stringify(last.data));
 }
 
+// 16. The scorecard has its own allowance: even after every interview message
+//     is used up (test 15), the visitor still gets a scorecard, and scorecard
+//     retries are capped separately (3 tries).
+{
+  const m = [...messages.slice(0, 1), { role: "user", content: "I organised events and kept the data tidy in Excel." }];
+  const turn = await post("/api/turn", { token, setup, messages: m });
+  check("interview messages are used up", turn.status === 429 && turn.data.error === "session_limit", JSON.stringify(turn.data));
+  const r1 = await post("/api/report", { token, setup, messages: m });
+  check("scorecard still works after the message limit", r1.status === 200 && r1.data.report, JSON.stringify(r1.data).slice(0, 120));
+  await post("/api/report", { token, setup, messages: m });
+  await post("/api/report", { token, setup, messages: m });
+  const r4 = await post("/api/report", { token, setup, messages: m });
+  check("scorecard tries are capped at 3", r4.status === 429 && r4.data.error === "report_limit", JSON.stringify(r4.data));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

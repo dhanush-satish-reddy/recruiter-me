@@ -38,6 +38,7 @@ MAX_INTERVIEWS_PER_BROWSER_DAY = "3"  # interviews per browser per day
 MAX_INTERVIEWS_PER_NETWORK_DAY = "30" # per internet connection (campus and office networks share one)
 MAX_CALLS_PER_NETWORK_HOUR = "150"   # messages per internet connection per hour
 MAX_CALLS_PER_SESSION = "14"          # messages within one interview
+MAX_REPORTS_PER_SESSION = "3"         # scorecard tries, counted separately
 
 [observability]
 enabled = true

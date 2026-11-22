@@ -319,6 +319,8 @@
   function setThinking(on, label) {
     $("thinking").hidden = !on;
     $("thinkingText").textContent = label || t().sending;
+    // Screen readers hear the wait too (the visible indicator is shown and hidden).
+    $("srStatus").textContent = on ? label || t().sending : "";
   }
 
   function lockAnswer(locked) {

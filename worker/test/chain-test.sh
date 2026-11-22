@@ -21,7 +21,7 @@ stop_all() {
 run_case() { # $1 = models used up for today, $2 = models with one per-minute limit
   stop_all
   rm -rf .wrangler/state
-  EXHAUSTED="$1" RATELIMIT="${2:-}" SLOW="${3:-0}" node test/fake-groq.mjs > /tmp/rm-fake-groq.log 2>&1 &
+  EXHAUSTED="$1" RATELIMIT="${2:-}" SLOW="${3:-0}" BADREPORT="${4:-}" node test/fake-groq.mjs > /tmp/rm-fake-groq.log 2>&1 &
   npx wrangler dev --local --port 8787 --var MOCK_AI:0 --var GROQ_API_KEY:test \
     --var GROQ_BASE_URL:http://localhost:8799 > /tmp/rm-wrangler.log 2>&1 &
   for _ in $(seq 1 30); do curl -s localhost:8787/health > /dev/null && break; sleep 1; done
@@ -40,6 +40,14 @@ run_case() { # $1 = models used up for today, $2 = models with one per-minute li
       process.stdout.write(JSON.stringify({token:r.token,setup:'"$setup"',messages:[{role:"assistant",content:r.reply,sig:r.sig},{role:"user",content:"I like building things."}]}))})' \
       | curl -s -H Content-Type:application/json -H Origin:http://localhost:8000 -d @- localhost:8787/api/turn)
   fi
+  # Third step: ask for the scorecard.
+  REP=""
+  if [ -n "$tok" ]; then
+    REP=$(echo "$R1" | node -e '
+      let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const r=JSON.parse(d);
+      process.stdout.write(JSON.stringify({token:r.token,setup:'"$setup"',messages:[{role:"assistant",content:r.reply,sig:r.sig},{role:"user",content:"I like building things."}]}))})' \
+      | curl -s -H Content-Type:application/json -H Origin:http://localhost:8000 -d @- localhost:8787/api/report)
+  fi
   CALLS=$(curl -s localhost:8799/calls)
 }
 
@@ -48,6 +56,10 @@ echo "Model chain tests"
 run_case ""
 check "main model answers when nothing is used up" "$(echo "$R1" | grep -q 'Hello from openai/gpt-oss-120b' && echo 1)"
 check "second message (with signed recruiter message) gets a reply" "$(echo "$T1" | grep -q '"reply":"\[Q1/3\] Hello from openai/gpt-oss-120b' && echo 1)"
+check "scorecard is written" "$(echo "$REP" | grep -q '"overall":60' && echo 1)"
+
+run_case "" "" 0 "openai/gpt-oss-120b"
+check "unreadable scorecard: the next model writes it instead" "$(echo "$REP" | grep -q '"overall":60' && echo "$CALLS" | grep -q 'gpt-oss-20b' && echo 1)"
 
 run_case "openai/gpt-oss-120b"
 check "switches to the next model when the main one is used up" "$(echo "$R1" | grep -q 'Hello from openai/gpt-oss-20b' && echo 1)"

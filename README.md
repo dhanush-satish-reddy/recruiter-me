@@ -42,7 +42,7 @@ flowchart LR
 |---|---|
 | Stolen API key | Key stored as a Cloudflare secret. The website never sees it. |
 | Bots draining the free quota | Cloudflare Turnstile check before every interview. |
-| One person spamming | Max 3 interviews per browser per day and 14 messages per interview. A looser cap per internet connection (30 interviews per day, 150 messages per hour) stops scripts, while a whole campus or office sharing one IP address can still use it. |
+| One person spamming | Max 3 interviews per browser per day and 14 messages per interview. The scorecard has its own 3 tries, so a long interview never costs anyone their scorecard. A looser cap per internet connection (30 interviews per day, 150 messages per hour) stops scripts, while a whole campus or office sharing one IP address can still use it. |
 | Many people at once | Global cap of 60 interviews and 900 AI calls per day. When every free model has used up its daily allowance, new interviews are refused with a clear "come back tomorrow" instead of failing halfway. |
 | Huge inputs | Answers ≤ 1,200 characters, job ads ≤ 6,000, request body ≤ 64 KB. |
 | Slow AI providers | One time budget per answer across all models, retries and the backup (35 s for questions, 50 s for the scorecard), so nobody waits minutes for an error. |
