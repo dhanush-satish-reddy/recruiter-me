@@ -167,8 +167,8 @@
   }
 
   // ---------- hero: one question, many languages ----------
-  // Hero question: English, German, Spanish, French, Portuguese, then the
-  // others, in a continuous loop. Two stacked layers crossfade, so there is
+  // Hero question: English first, then European and Asian languages take
+  // turns (order lives in i18n.js), in a continuous loop. Two stacked layers crossfade, so there is
   // never a moving, half-drawn or empty frame. Screen readers get one fixed
   // label in the page language instead of the changing text.
   function heroLabel() {

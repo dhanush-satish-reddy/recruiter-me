@@ -3,20 +3,21 @@
 // Hero question, in this order, looping continuously: European languages first, then Indian languages.
 window.RM_HERO_QUESTIONS = [
   // "\n" is the line break: every question is shown on two lines.
+  // Order: English first, then European and Asian languages take turns.
   { lang: "en", text: "Tell me about\nyourself." },
-  { lang: "de", text: "Erzähl mal etwas\nüber dich." },
-  { lang: "es", text: "Háblame\nde ti." },
-  { lang: "fr", text: "Parlez-moi\nde vous." },
-  { lang: "pt", text: "Fale-me\nsobre você." },
-  { lang: "it", text: "Parlami\ndi te." },
-  { lang: "tr", text: "Bana kendinden\nbahset." },
   { lang: "hi", text: "अपने बारे में\nबताइए।" },
-  { lang: "kn", text: "ನಿಮ್ಮ ಬಗ್ಗೆ\nಹೇಳಿ." },
-  { lang: "te", text: "మీ గురించి\nచెప్పండి." },
-  { lang: "ta", text: "உங்களைப் பற்றி\nசொல்லுங்கள்." },
-  { lang: "pa", text: "ਆਪਣੇ ਬਾਰੇ\nਦੱਸੋ।" },
+  { lang: "de", text: "Erzähl mal etwas\nüber dich." },
   { lang: "ja", text: "自己紹介を\nどうぞ。" },
+  { lang: "es", text: "Háblame\nde ti." },
+  { lang: "te", text: "మీ గురించి\nచెప్పండి." },
+  { lang: "fr", text: "Parlez-moi\nde vous." },
   { lang: "zh", text: "请介绍一下\n你自己。" },
+  { lang: "it", text: "Parlami\ndi te." },
+  { lang: "kn", text: "ನಿಮ್ಮ ಬಗ್ಗೆ\nಹೇಳಿ." },
+  { lang: "pt", text: "Fale-me\nsobre você." },
+  { lang: "ta", text: "உங்களைப் பற்றி\nசொல்லுங்கள்." },
+  { lang: "tr", text: "Bana kendinden\nbahset." },
+  { lang: "pa", text: "ਆਪਣੇ ਬਾਰੇ\nਦੱਸੋ।" },
 ];
 
 window.RM_TEXT = {
