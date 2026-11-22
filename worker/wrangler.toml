@@ -25,7 +25,7 @@ database_id = "06a43289-83fa-4229-b702-ebc51eb70bc0"
 
 [vars]
 # Only these websites may use the backend
-ALLOWED_ORIGINS = "https://dhanush-satish-reddy.github.io"
+ALLOWED_ORIGINS = "https://recruiter-me.github.io,https://dhanush-satish-reddy.github.io"
 
 GROQ_MODEL = "openai/gpt-oss-120b"
 FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it"

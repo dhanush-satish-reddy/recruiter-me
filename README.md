@@ -2,7 +2,7 @@
 
 **Practise job interviews with an AI recruiter, in your language, and get an honest scorecard at the end.**
 
-**Live:** https://dhanush-satish-reddy.github.io/recruiter-me/
+**Live:** https://recruiter-me.github.io/
 
 ![Recruiter-Me preview](docs/og.png)
 
