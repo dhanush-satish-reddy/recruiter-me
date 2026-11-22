@@ -151,27 +151,39 @@
   }
 
   // ---------- hero: one question, many languages ----------
+  // Hero question: English, German, Spanish, French, Portuguese, then the
+  // others, in a continuous loop. Two stacked layers crossfade, so there is
+  // never a moving, half-drawn or empty frame. Screen readers get one fixed
+  // label in the page language instead of the changing text.
+  function heroLabel() {
+    const q = window.RM_HERO_QUESTIONS.find((x) => x.lang === state.lang) || window.RM_HERO_QUESTIONS[0];
+    $("heroQ").setAttribute("aria-label", q.text);
+  }
+
   function runHero() {
-    const el = $("heroText");
+    const layers = [$("heroText"), $("heroText2")];
+    layers.forEach((el) => el.setAttribute("aria-hidden", "true"));
+    $("heroQ").setAttribute("role", "heading");
+    $("heroQ").setAttribute("aria-level", "1");
+    heroLabel();
     const qs = window.RM_HERO_QUESTIONS;
-    const finalQ = qs.find((q) => q.lang === state.lang) || qs[0];
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const show = (q) => { el.textContent = q.text; el.lang = q.lang; };
-    if (reduce) { show(finalQ); return; }
-    const order = qs.filter((q) => q !== finalQ).concat(finalQ);
+    const set = (el, q) => { el.textContent = q.text; el.lang = q.lang; };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      set(layers[0], qs.find((q) => q.lang === state.lang) || qs[0]);
+      return;
+    }
     let i = 0;
-    show(order[0]);
-    const tick = () => {
-      i++;
-      if (i >= order.length) return;
-      el.classList.add("is-out");
-      setTimeout(() => {
-        show(order[i]);
-        el.classList.remove("is-out");
-        if (i < order.length - 1) setTimeout(tick, 1300);
-      }, 450);
-    };
-    setTimeout(tick, 1500);
+    let shown = 0;
+    set(layers[0], qs[0]);
+    setInterval(() => {
+      if (document.hidden) return;               // no work while the tab is in the background
+      i = (i + 1) % qs.length;
+      const next = 1 - shown;
+      set(layers[next], qs[i]);
+      layers[next].classList.remove("is-out");
+      layers[shown].classList.add("is-out");
+      shown = next;
+    }, 2200);
   }
 
   // ---------- Turnstile (bot check) ----------
@@ -510,11 +522,7 @@
     state.lang = state.lang === "de" ? "en" : "de";
     try { localStorage.setItem("rm-lang", state.lang); } catch { /* ignore */ }
     applyTexts();
-    if (!$("home").hidden) {
-      const q = window.RM_HERO_QUESTIONS.find((x) => x.lang === state.lang);
-      $("heroText").textContent = q.text;
-      $("heroText").lang = q.lang;
-    }
+    heroLabel();
   });
   $("setupForm").addEventListener("submit", onStart);
   document.querySelector('.hero a[href="#setup"]').addEventListener("click", (e) => {
