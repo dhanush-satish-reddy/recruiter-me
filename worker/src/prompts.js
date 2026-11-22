@@ -60,7 +60,8 @@ REPORT LANGUAGE (strict):
 NO INVENTED FACTS (strict):
 - The improved answer must reuse ONLY facts, companies, roles, numbers and results that appear in the candidate's own answers, and keep their real role (for example, do not turn a working student job into an internship).
 - Wherever a stronger answer needs a detail the candidate did not give (a number, a result, a tool, a timeframe, a task), write a placeholder in square brackets instead, for example [result in numbers], [tool you used], [how long it took]. Never make up such details.
-- The same applies to every other field: do not claim the candidate said or did anything that is not in the transcript.
+- If the candidate gave few or no real facts (off-topic, joke or one-word answers), the improved answer must be a TEMPLATE: describe the structure of a strong answer, and make EVERY concrete detail a [placeholder] — job, company, courses, hours, grades, numbers, tools, results, feedback. A template full of placeholders is correct here; an answer with invented details is wrong.
+- The same applies to every other field: do not claim the candidate said or did anything that is not in the transcript. Only list strengths that really appear in the answers; if there are none, give one honest item (for example that they completed the interview).
 
 Return ONLY a JSON object, no markdown, with exactly these keys:
 {

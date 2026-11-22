@@ -303,7 +303,17 @@ function guardReply(text) {
   return text;
 }
 
-function parseReport(text) {
+// Safety net against invented facts: any number in the example answer that the
+// candidate never wrote is replaced with a placeholder.
+function stripInventedNumbers(answer, candidateText) {
+  const said = new Set((candidateText.match(/\d+(?:[.,]\d+)?/g) || []).map((n) => n.replace(",", ".")));
+  return answer.replace(/\d+(?:[.,]\d+)?(\s?%)?/g, (m, pct) => {
+    const n = m.replace(/\s?%$/, "").replace(",", ".");
+    return said.has(n) ? m : pct ? "[number] %" : "[number]";
+  });
+}
+
+function parseReport(text, candidateText = "") {
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) return null;
   try {
@@ -322,7 +332,10 @@ function parseReport(text) {
       strengths: list(r.strengths, 4),
       improvements: list(r.improvements, 4),
       improved_answer: r.improved_answer && r.improved_answer.answer
-        ? { question: clean(r.improved_answer.question).slice(0, 400), answer: clean(r.improved_answer.answer).slice(0, 1200) }
+        ? {
+            question: clean(r.improved_answer.question).slice(0, 400),
+            answer: stripInventedNumbers(clean(r.improved_answer.answer).slice(0, 1200), candidateText),
+          }
         : null,
       job_fit: r.job_fit && (r.job_fit.matches || r.job_fit.gaps)
         ? { matches: list(r.job_fit.matches, 6), gaps: list(r.job_fit.gaps, 6) }
@@ -415,7 +428,8 @@ async function handleTurn(request, env, db, body, mode) {
     { role: "user", content: `<transcript>\n${transcript}\n</transcript>\n\nWrite the JSON report now.` },
   ];
   const { text } = await askAI(env, db, messages, "report");
-  const report = parseReport(text);
+  const candidateText = msgs.filter((m) => m.role === "user").map((m) => m.content).join("\n");
+  const report = parseReport(text, candidateText);
   if (!report) throw new HttpError(502, "report_failed");
   await stat(db, "completed");
   return { report };
