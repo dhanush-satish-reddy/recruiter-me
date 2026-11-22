@@ -2,17 +2,18 @@
 // The INTERVIEW itself can run in many more languages (chosen in the form).
 // Hero question, in this order, looping continuously: European languages first, then Indian languages.
 window.RM_HERO_QUESTIONS = [
-  { lang: "en", text: "Tell me about yourself." },
-  { lang: "de", text: "Erzähl mal etwas über dich." },
-  { lang: "es", text: "Háblame de ti." },
-  { lang: "fr", text: "Parlez-moi de vous." },
-  { lang: "pt", text: "Fale-me sobre você." },
-  { lang: "it", text: "Parlami di te." },
-  { lang: "hi", text: "अपने बारे में बताइए।" },
-  { lang: "kn", text: "ನಿಮ್ಮ ಬಗ್ಗೆ ಹೇಳಿ." },
-  { lang: "te", text: "మీ గురించి చెప్పండి." },
-  { lang: "ta", text: "உங்களைப் பற்றி சொல்லுங்கள்." },
-  { lang: "pa", text: "ਆਪਣੇ ਬਾਰੇ ਦੱਸੋ।" },
+  // "\n" is the line break: every question is shown on two lines.
+  { lang: "en", text: "Tell me about\nyourself." },
+  { lang: "de", text: "Erzähl mal etwas\nüber dich." },
+  { lang: "es", text: "Háblame\nde ti." },
+  { lang: "fr", text: "Parlez-moi\nde vous." },
+  { lang: "pt", text: "Fale-me\nsobre você." },
+  { lang: "it", text: "Parlami\ndi te." },
+  { lang: "hi", text: "अपने बारे में\nबताइए।" },
+  { lang: "kn", text: "ನಿಮ್ಮ ಬಗ್ಗೆ\nಹೇಳಿ." },
+  { lang: "te", text: "మీ గురించి\nచెప్పండి." },
+  { lang: "ta", text: "உங்களைப் பற்றி\nசொல்லுங்கள்." },
+  { lang: "pa", text: "ਆਪਣੇ ਬਾਰੇ\nਦੱਸੋ।" },
 ];
 
 window.RM_TEXT = {

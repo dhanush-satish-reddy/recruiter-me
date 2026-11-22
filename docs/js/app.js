@@ -157,7 +157,7 @@
   // label in the page language instead of the changing text.
   function heroLabel() {
     const q = window.RM_HERO_QUESTIONS.find((x) => x.lang === state.lang) || window.RM_HERO_QUESTIONS[0];
-    $("heroQ").setAttribute("aria-label", q.text);
+    $("heroQ").setAttribute("aria-label", q.text.replace(/\n/g, " "));
   }
 
   function runHero() {

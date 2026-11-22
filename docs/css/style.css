@@ -132,14 +132,13 @@ a:hover { text-decoration-thickness: 2px; }
   letter-spacing: -0.02em;
   color: var(--navy);
   min-height: 2.15em;
-  max-width: 14ch;
   position: relative;
   padding-left: clamp(1rem, 2.6vw, 2rem);
   border-left: 3px solid var(--brass);
 }
 /* Two stacked layers crossfade: never a moving, half-drawn or empty frame. */
 .hero-q { display: grid; }
-.hero-q span { grid-area: 1 / 1; transition: opacity .7s ease; }
+.hero-q span { grid-area: 1 / 1; transition: opacity .7s ease; white-space: pre-line; }
 .hero-q span.is-out { opacity: 0; }
 .hero-body { max-width: 62ch; padding-left: calc(clamp(1rem, 2.6vw, 2rem) + 3px); }
 .hero-lead { margin: 0 0 1.75rem; font-size: var(--step-1); line-height: 1.55; color: var(--ink); }
