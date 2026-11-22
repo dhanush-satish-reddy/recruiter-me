@@ -1,3 +1,4 @@
+// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
 // Recruiter-Me front end. Plain JavaScript, no build step, no trackers.
 (() => {
   "use strict";

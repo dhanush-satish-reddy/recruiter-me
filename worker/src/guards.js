@@ -1,3 +1,4 @@
+// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
 // Small pure helpers, kept separate so they can be unit-tested with plain Node.
 
 // A random marker placed in the system prompt. If it ever shows up in a model

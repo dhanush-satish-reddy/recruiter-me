@@ -148,4 +148,4 @@ Fonts: [Newsreader](https://github.com/productiontype/Newsreader) and [Hanken Gr
 
 ## License
 
-Code: [MIT](LICENSE).
+© 2026 Dhanush Satish Reddy. Code: [MIT](LICENSE).

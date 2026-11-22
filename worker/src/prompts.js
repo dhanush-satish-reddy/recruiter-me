@@ -1,3 +1,4 @@
+// © 2026 Dhanush Satish Reddy. MIT License, see LICENSE.
 // Prompt building. The CORE_RULES are fixed in code on purpose: they are the
 // safety layer and must not be weakened by editing the playbook.
 import PLAYBOOK from "./playbook.md";
