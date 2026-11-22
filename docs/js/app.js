@@ -210,13 +210,15 @@
     if (!$("consent").checked) { showError(err, "consent"); $("consent").focus(); return; }
     if (setup.type === "jobad" && setup.jobAd.length < 80) { showError(err, "job_ad_too_short"); $("jobAd").focus(); return; }
     if (setup.jobAd.length > C.LIMITS.jobAd) { showError(err, "job_ad_too_long"); $("jobAd").focus(); return; }
+    const tsToken = turnstileToken();
+    if (!tsToken) { showError(err, "bot_check_pending"); $("turnstile").scrollIntoView({ block: "center" }); return; }
 
     const btn = $("startBtn");
     state.busy = true;
     btn.disabled = true;
     btn.textContent = t().starting;
     try {
-      const data = await api("/api/start", { setup, turnstileToken: turnstileToken() });
+      const data = await api("/api/start", { setup, turnstileToken: tsToken });
       Object.assign(state, { setup, token: data.token, messages: [], total: setup.length, current: 0, ended: false, lastReport: null });
       $("transcript").innerHTML = "";
       setView("interview");
