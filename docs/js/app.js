@@ -273,8 +273,11 @@
     const div = document.createElement("div");
     div.className = `msg msg-${who}`;
     div.innerHTML = `<span class="msg-who">${esc(who === "recruiter" ? tx.interviewer : tx.you)}</span><div class="msg-text">${toHtml(text)}</div>`;
+    // Only follow new messages if the reader is already near the bottom,
+    // so the page never fights someone who scrolled up to reread.
+    const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 400;
     $("transcript").appendChild(div);
-    div.scrollIntoView({ block: "end", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    if (nearBottom || who === "you") div.scrollIntoView({ block: "nearest" });
     return div;
   }
 
@@ -486,6 +489,12 @@
     }
   });
   $("setupForm").addEventListener("submit", onStart);
+  document.querySelector('.hero a[href="#setup"]').addEventListener("click", (e) => {
+    e.preventDefault();
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    $("setup").scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+    $("setup").focus({ preventScroll: true });
+  });
   $("jobAd").addEventListener("input", updateJobAdCount);
   $("answer").addEventListener("input", updateAnswerCount);
   $("answer").addEventListener("keydown", (e) => {
