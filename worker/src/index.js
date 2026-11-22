@@ -243,7 +243,9 @@ async function callGroq(env, messages, mode) {
     messages,
     temperature: mode === "report" ? 0.3 : 0.7,
     max_completion_tokens: mode === "report" ? 2200 : 600,
-    reasoning_effort: "low",
+    // The scorecard gets more thinking time: it must follow the language and
+    // no-invented-facts rules strictly. Interview questions stay fast.
+    reasoning_effort: mode === "report" ? "medium" : "low",
     include_reasoning: false,
   };
   if (mode === "report") body.response_format = { type: "json_object" };

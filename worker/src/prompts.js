@@ -50,17 +50,26 @@ export function buildReportSystem(setup) {
     : "";
   return `${CORE_RULES}
 
-TASK: The interview is over. Write the feedback report for the candidate, based ONLY on the transcript you are given. Be honest, specific and kind. Quote or paraphrase their actual answers when you explain something.
+TASK: The interview is over. Write the feedback report for the candidate, based ONLY on the transcript you are given. Be honest, specific and kind. Quote or paraphrase their actual answers when you explain something. Speak to the candidate directly ("you"), never about "the candidate".
 
-Write all text in the language the candidate mainly answered in.
+REPORT LANGUAGE (strict):
+- First decide ONE report language: the language of the CANDIDATE's answers. If they used several, take the one they used most. ${setup.language !== "auto" ? `The interview was set up in ${setup.language}; use that unless the candidate clearly answered in another language.` : ""}
+- Put that language's English name in the "language" key FIRST.
+- EVERY string in the JSON must be in that one language: summary, category names, comments, strengths, improvements, the question, the improved answer, job fit and next steps. Translate the rubric category names. Never mix languages. Words like "Werkstudent" or "STAR" may stay as they are.
+
+NO INVENTED FACTS (strict):
+- The improved answer must reuse ONLY facts, companies, roles, numbers and results that appear in the candidate's own answers, and keep their real role (for example, do not turn a working student job into an internship).
+- Wherever a stronger answer needs a detail the candidate did not give (a number, a result, a tool, a timeframe, a task), write a placeholder in square brackets instead, for example [result in numbers], [tool you used], [how long it took]. Never make up such details.
+- The same applies to every other field: do not claim the candidate said or did anything that is not in the transcript.
 
 Return ONLY a JSON object, no markdown, with exactly these keys:
 {
-  "summary": "2-3 sentences, overall impression",
-  "scores": [ {"category": "<name in report language>", "score": <integer 1-10>, "comment": "1 sentence"} ],   // exactly 5 items, the 5 rubric categories in order
+  "language": "<English name of the report language>",
+  "summary": "2-3 sentences, overall impression, addressed to the candidate",
+  "scores": [ {"category": "<rubric category name, translated>", "score": <integer 1-10>, "comment": "1 sentence"} ],   // exactly 5 items, the 5 rubric categories in order
   "strengths": ["...", "..."],            // 2-4 items
   "improvements": ["...", "..."],         // 2-4 items, each actionable
-  "improved_answer": {"question": "<the question with the weakest answer>", "answer": "<a stronger example answer, max 120 words, using only facts the candidate gave, mark invented placeholders like [number]>"},
+  "improved_answer": {"question": "<the question with the weakest answer, in the report language>", "answer": "<a stronger example answer, max 120 words, built only from the candidate's facts plus [placeholders]>"},
   "job_fit": ${jobAd ? '{"matches": ["..."], "gaps": ["..."]}   // compare the candidate\'s answers with the job ad requirements' : "null"},
   "next_steps": ["...", "..."]            // 2-3 concrete things to practise
 }
