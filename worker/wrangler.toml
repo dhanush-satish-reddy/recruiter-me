@@ -34,8 +34,9 @@ FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it"
 # Abuse protection. All limits reset daily at 00:00 UTC.
 DAILY_INTERVIEWS = "60"               # interviews per day, all visitors together
 DAILY_AI_CALLS = "900"                # AI calls per day, all visitors together (below 1,000 requests/day per model)
-MAX_INTERVIEWS_PER_VISITOR_DAY = "3"  # interviews per visitor per day
-MAX_CALLS_PER_VISITOR_HOUR = "20"     # messages per visitor per hour
+MAX_INTERVIEWS_PER_BROWSER_DAY = "3"  # interviews per browser per day
+MAX_INTERVIEWS_PER_NETWORK_DAY = "30" # per internet connection (campus and office networks share one)
+MAX_CALLS_PER_NETWORK_HOUR = "150"   # messages per internet connection per hour
 MAX_CALLS_PER_SESSION = "14"          # messages within one interview
 
 [observability]

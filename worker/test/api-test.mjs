@@ -7,7 +7,9 @@ const BASE = process.env.API || "http://localhost:8787";
 const ORIGIN = "http://localhost:8000";
 let pass = 0, fail = 0;
 
+const CID = "0123456789abcdef0123456789abcdef";   // this test's "browser"
 async function post(path, body, origin = ORIGIN) {
+  if (path === "/api/start" && body && typeof body === "object" && !("clientId" in body)) body = { ...body, clientId: CID };
   const r = await fetch(BASE + path, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: origin },
@@ -120,6 +122,12 @@ let token, messages;
   await post("/api/start", { setup, turnstileToken: "t" });
   const r = await post("/api/start", { setup, turnstileToken: "t" });
   check("4th interview of the day blocked (429)", r.status === 429 && r.data.error === "visitor_daily_limit", JSON.stringify(r.data));
+}
+
+// 12b. Another browser on the same network can still start (limits are per browser)
+{
+  const r = await post("/api/start", { setup, turnstileToken: "t", clientId: "fedcba9876543210fedcba9876543210" });
+  check("second browser on the same network can start", r.status === 200 && !!r.data.token, JSON.stringify(r.data));
 }
 
 // 13. Faked or edited recruiter messages are rejected (signatures)

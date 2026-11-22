@@ -42,14 +42,15 @@ flowchart LR
 |---|---|
 | Stolen API key | Key stored as a Cloudflare secret. The website never sees it. |
 | Bots draining the free quota | Cloudflare Turnstile check before every interview. |
-| One person spamming | Max 3 interviews per visitor per day, 20 messages per hour, 14 messages per interview. |
+| One person spamming | Max 3 interviews per browser per day and 14 messages per interview. A looser cap per internet connection (30 interviews per day, 150 messages per hour) stops scripts, while a whole campus or office sharing one IP address can still use it. |
 | Many people at once | Global cap of 60 interviews and 900 AI calls per day. When every free model has used up its daily allowance, new interviews are refused with a clear "come back tomorrow" instead of failing halfway. |
 | Huge inputs | Answers ≤ 1,200 characters, job ads ≤ 6,000, request body ≤ 64 KB. |
+| Slow AI providers | One time budget per answer across all models, retries and the backup (35 s for questions, 50 s for the scorecard), so nobody waits minutes for an error. |
 | Other websites using the backend | Browsers only allow this site to call the backend (CORS allow-list). Scripts can fake that header, so the real protection is the human check, signed sessions and the limits. |
 | Forged or replayed sessions | HMAC-signed session tokens that expire after 1 hour. |
 | Faked recruiter messages | Every recruiter message is signed by the backend. The browser must send the signature back, so nobody can invent or edit recruiter messages to smuggle in instructions. |
 | Flooding the API to use up the free quota | Limits are checked before the trick filter, so blocked messages count too. Past a limit, requests only read counters and write nothing. |
-| Prompt injection ("ignore your instructions…") | Three layers: a pattern filter blocks obvious attacks before any AI call (saving quota), fixed safety rules in the system prompt treat all user text and job ads as data, and an output check blocks any reply that would leak the instructions (canary token). |
+| Prompt injection ("ignore your instructions…") | Three layers: a pattern filter blocks obvious attacks before any AI call (saving quota), fixed safety rules in the system prompt treat all user text and job ads as data, and an output check blocks any reply that would leak the instructions (canary token). The filter only matches phrases addressed to the AI, so genuine answers like "I had to show the rules to new colleagues" pass; unit tests cover both directions. |
 | Off-topic use (homework, code, etc.) | The recruiter declines in one sentence and returns to the interview. |
 | Fake "system" messages from the client | The backend only accepts `assistant` and `user` roles in a valid order. |
 
@@ -72,7 +73,7 @@ Google's Gemini free tier was considered and rejected: its terms only allow paid
 
 - No accounts, no cookies of our own, no analytics.
 - Conversation content is not stored by this project. The AI providers process it under their own data protection terms.
-- Rate limiting uses a daily-rotating hash of the IP address, never the IP itself. A nightly scheduled job deletes it after its day ends.
+- Rate limiting uses daily-rotating hashes of the IP address and of a random browser ID, never the values themselves. A nightly scheduled job deletes them after their day ends.
 - Full notice in German and English: [`docs/privacy.html`](docs/privacy.html)
 
 ## Project structure

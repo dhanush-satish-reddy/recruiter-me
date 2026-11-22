@@ -20,6 +20,21 @@
   };
   const t = () => TEXT[state.lang];
 
+  // A random ID this browser keeps, so the "3 interviews per day" limit counts
+  // per person instead of per internet connection. It means nothing outside
+  // this site, and the server only stores a daily-changing hash of it.
+  function clientId() {
+    const make = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    try {
+      let id = localStorage.getItem("rm-client");
+      if (!/^[a-f0-9]{32}$/.test(id || "")) { id = make(); localStorage.setItem("rm-client", id); }
+      return id;
+    } catch {
+      state.tempClientId = state.tempClientId || make();
+      return state.tempClientId;
+    }
+  }
+
   function pickLang() {
     try {
       const saved = localStorage.getItem("rm-lang");
@@ -53,9 +68,10 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(70000),
       });
-    } catch {
-      throw new Error("network");
+    } catch (e) {
+      throw new Error(e && e.name === "TimeoutError" ? "ai_unavailable" : "network");
     }
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || "default");
@@ -176,7 +192,7 @@
     let shown = 0;
     set(layers[0], qs[0]);
     setInterval(() => {
-      if (document.hidden) return;               // no work while the tab is in the background
+      if (document.hidden || $("home").hidden) return;   // no work in the background or during an interview
       i = (i + 1) % qs.length;
       const next = 1 - shown;
       set(layers[next], qs[i]);
@@ -236,7 +252,7 @@
     btn.disabled = true;
     btn.textContent = t().starting;
     try {
-      const data = await api("/api/start", { setup, turnstileToken: tsToken });
+      const data = await api("/api/start", { setup, turnstileToken: tsToken, clientId: clientId() });
       Object.assign(state, { setup, token: data.token, messages: [], total: setup.length, current: 0, ended: false, lastReport: null });
       $("transcript").innerHTML = "";
       setView("interview");

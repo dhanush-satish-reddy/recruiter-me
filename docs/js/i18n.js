@@ -100,7 +100,8 @@ window.RM_TEXT = {
     errors: {
       daily_limit: "Today's free interviews are used up. Please come back tomorrow.",
       visitor_daily_limit: "You've reached today's limit of 3 interviews. Come back tomorrow for more practice.",
-      visitor_limit: "That's a lot of messages in one hour. Please wait a little and try again.",
+      network_daily_limit: "Many people on your network have practised today, so it has reached its daily limit. Try again tomorrow, or switch to another connection such as mobile data.",
+      visitor_limit: "There's a lot of activity from your network right now. Please wait a few minutes and try again.",
       session_limit: "This interview has reached its message limit. Get your scorecard now.",
       session_expired: "This interview timed out after one hour. Please start a new one.",
       invalid_session: "This interview can't be continued. Please start a new one.",
@@ -202,7 +203,8 @@ window.RM_TEXT = {
     errors: {
       daily_limit: "Die kostenlosen Interviews für heute sind aufgebraucht. Bitte komm morgen wieder.",
       visitor_daily_limit: "Du hast heute schon 3 Interviews geführt. Morgen kannst du weiter üben.",
-      visitor_limit: "Sehr viele Nachrichten in einer Stunde. Bitte warte kurz und versuche es erneut.",
+      network_daily_limit: "In deinem Netzwerk wurde heute schon sehr viel geübt, daher ist das Tageslimit erreicht. Versuche es morgen oder über eine andere Verbindung, zum Beispiel mobile Daten.",
+      visitor_limit: "Aus deinem Netzwerk kommen gerade sehr viele Anfragen. Bitte warte ein paar Minuten und versuche es erneut.",
       session_limit: "Dieses Interview hat sein Nachrichtenlimit erreicht. Hol dir jetzt dein Feedback.",
       session_expired: "Dieses Interview ist nach einer Stunde abgelaufen. Bitte starte ein neues.",
       invalid_session: "Dieses Interview kann nicht fortgesetzt werden. Bitte starte ein neues.",

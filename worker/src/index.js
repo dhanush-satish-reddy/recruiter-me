@@ -9,7 +9,7 @@ import {
   CANARY, TYPES, STYLES, LENGTHS,
   buildInterviewSystem, buildReportSystem, looksLikeInjection,
 } from "./prompts.js";
-import { stripInventedNumbers } from "./guards.js";
+import { stripInventedNumbers, safeEqual } from "./guards.js";
 
 const LIMITS = {
   jobAdChars: 6000,
@@ -123,12 +123,23 @@ async function stat(db, key) {
   try { await bump(db, `stat:${key}`); } catch { /* stats must never break a request */ }
 }
 
-// Visitor IDs are a hash of IP + today's date + secret: not reversible and
-// they change every day. Old rows are deleted.
-async function visitorId(request, db) {
+// Two anonymous IDs, both hashed with today's date and a secret, so they are
+// not reversible and change every day. Old rows are deleted every night.
+// - network ID (from the IP address): a loose safety cap, because a whole
+//   campus, office or mobile network can share one IP address
+// - browser ID (a random number the browser keeps): the per-person limit
+async function networkId(request, db) {
   const ip = request.headers.get("CF-Connecting-IP") || "local";
   const secret = await getSecret(db);
-  return (await sha256hex(`${today()}|${ip}|${secret}`)).slice(0, 16);
+  return (await sha256hex(`${today()}|ip|${ip}|${secret}`)).slice(0, 16);
+}
+
+async function browserId(body, request, db) {
+  const raw = typeof body.clientId === "string" && /^[a-f0-9]{32}$/.test(body.clientId) ? body.clientId : null;
+  // No valid browser ID: fall back to the network, so the limit still applies.
+  if (!raw) return `n${await networkId(request, db)}`;
+  const secret = await getSecret(db);
+  return (await sha256hex(`${today()}|browser|${raw}|${secret}`)).slice(0, 16);
 }
 
 // Runs every night (cron) and occasionally on requests. Visitor rows (hashed
@@ -173,7 +184,7 @@ async function signMessage(db, sid, content) {
 async function verifyRecruiterMessages(db, sid, msgs) {
   for (const m of msgs) {
     if (m.role !== "assistant") continue;
-    if (!m.sig || m.sig !== (await signMessage(db, sid, m.content))) throw new HttpError(400, "bad_messages");
+    if (!m.sig || !safeEqual(m.sig, await signMessage(db, sid, m.content))) throw new HttpError(400, "bad_messages");
   }
 }
 
@@ -274,7 +285,7 @@ function groqModels(env) {
   return (env.GROQ_MODELS || "openai/gpt-oss-120b").split(",").map((m) => m.trim()).filter(Boolean);
 }
 
-async function callGroq(env, model, messages, mode) {
+async function callGroq(env, model, messages, mode, timeoutMs = 30000) {
   const body = {
     model,
     messages,
@@ -294,7 +305,7 @@ async function callGroq(env, model, messages, mode) {
     method: "POST",
     headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!r.ok) {
     const detail = await r.text().catch(() => "");
@@ -320,28 +331,40 @@ async function exhaustedModels(db) {
   return new Set((results || []).map((r) => r.key));
 }
 
-async function callWorkersAI(env, messages, mode) {
-  const out = await env.AI.run(env.FALLBACK_MODEL || "@cf/google/gemma-4-26b-a4b-it", {
-    messages,
-    max_tokens: mode === "report" ? 2000 : 500,
-    temperature: mode === "report" ? 0.3 : 0.7,
-  });
+async function callWorkersAI(env, messages, mode, timeoutMs = 30000) {
+  let timer;
+  const out = await Promise.race([
+    env.AI.run(env.FALLBACK_MODEL || "@cf/google/gemma-4-26b-a4b-it", {
+      messages,
+      max_tokens: mode === "report" ? 2000 : 500,
+      temperature: mode === "report" ? 0.3 : 0.7,
+    }),
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("workers_ai_timeout")), timeoutMs); }),
+  ]).finally(() => clearTimeout(timer));
   const text = typeof out === "string" ? out
     : out?.response ?? out?.choices?.[0]?.message?.content ?? out?.result?.response;
   if (!text) throw new Error("workers_ai_empty");
   return typeof text === "string" ? text : JSON.stringify(text);
 }
 
+// The whole answer, across all models, retries and the backup, must arrive
+// within this time. Visitors never wait minutes for an error.
+const AI_BUDGET_MS = { chat: 35000, report: 50000 };
+const MIN_ATTEMPT_MS = 4000;
+
 async function askAI(env, db, messages, mode) {
   if (env.DEV_MODE === "1" && env.MOCK_AI === "1") return { text: mockAI(messages, mode), provider: "mock" };
+  const deadline = Date.now() + AI_BUDGET_MS[mode];
+  const left = () => deadline - Date.now();
   let allDaily = true;
   if (env.GROQ_API_KEY) {
     const done = await exhaustedModels(db);
     for (const model of groqModels(env)) {
       if (done.has(modelKey(model))) continue;
       for (let attempt = 1; attempt <= 2; attempt++) {
+        if (left() < MIN_ATTEMPT_MS) break;
         try {
-          const text = await callGroq(env, model, messages, mode);
+          const text = await callGroq(env, model, messages, mode, Math.min(30000, left()));
           if (model !== groqModels(env)[0]) await stat(db, `model:${model}`);
           return { text, provider: model };
         } catch (e) {
@@ -351,7 +374,7 @@ async function askAI(env, db, messages, mode) {
           if (e.dailyLimit) { await bump(db, modelKey(model)).catch(() => {}); break; }
           allDaily = false;
           // Per-minute limit with a short wait: wait once, then retry the same model.
-          if (attempt === 1 && e.status === 429 && e.retryAfter && e.retryAfter <= 8) {
+          if (attempt === 1 && e.status === 429 && e.retryAfter && e.retryAfter <= 8 && left() > e.retryAfter * 1000 + MIN_ATTEMPT_MS) {
             await new Promise((res) => setTimeout(res, Math.ceil(e.retryAfter * 1000) + 250));
             continue;
           }
@@ -361,7 +384,8 @@ async function askAI(env, db, messages, mode) {
     }
   }
   try {
-    const text = await callWorkersAI(env, messages, mode);
+    if (left() < MIN_ATTEMPT_MS) throw new Error("no_time_left");
+    const text = await callWorkersAI(env, messages, mode, left());
     await stat(db, "fallback_used");
     return { text, provider: "workers-ai" };
   } catch (e) {
@@ -418,10 +442,10 @@ function parseReport(text, candidateText = "") {
 // Per-visitor and per-interview limits. They count EVERY message, including
 // ones blocked by the trick filter. Counters are only written while under the
 // limit, so someone hammering the API past it causes reads, not writes.
-async function enforceVisitorLimits(env, db, vid, session) {
-  const perHour = num(env.MAX_CALLS_PER_VISITOR_HOUR, 20);
+async function enforceVisitorLimits(env, db, nid, session) {
+  const perHour = num(env.MAX_CALLS_PER_NETWORK_HOUR, 150);
   const perSession = num(env.MAX_CALLS_PER_SESSION, 14);
-  const hourKeyName = `v:${vid}:h${hourKey()}`;
+  const hourKeyName = `v:${nid}:h${hourKey()}`;
   const sessionKey = `s:${session.sid}`;
   const sessionDay = session.day || today();
   if ((await peek(db, hourKeyName)) >= perHour) throw new HttpError(429, "visitor_limit");
@@ -441,21 +465,23 @@ async function enforceGlobalAiLimit(env, db) {
 async function handleStart(request, env, db, body) {
   const setup = validateSetup(body.setup);
   const ip = request.headers.get("CF-Connecting-IP");
-  const vid = await visitorId(request, db);
+  const nid = await networkId(request, db);
+  const bid = await browserId(body, request, db);
 
   if ((await peek(db, "global:interviews")) >= num(env.DAILY_INTERVIEWS, 25)) throw new HttpError(429, "daily_limit");
   if (env.GROQ_API_KEY && env.DEV_MODE !== "1") {
     const done = await exhaustedModels(db);
     if (groqModels(env).every((m) => done.has(modelKey(m)))) throw new HttpError(429, "daily_limit");
   }
-  if ((await peek(db, `v:${vid}:interviews`)) >= num(env.MAX_INTERVIEWS_PER_VISITOR_DAY, 3)) throw new HttpError(429, "visitor_daily_limit");
+  if ((await peek(db, `b:${bid}:interviews`)) >= num(env.MAX_INTERVIEWS_PER_BROWSER_DAY, 3)) throw new HttpError(429, "visitor_daily_limit");
+  if ((await peek(db, `v:${nid}:interviews`)) >= num(env.MAX_INTERVIEWS_PER_NETWORK_DAY, 30)) throw new HttpError(429, "network_daily_limit");
 
   await verifyTurnstile(env, body.turnstileToken, ip);
 
   if (Math.random() < 0.1) await cleanup(db);
 
   const session = { sid: b64u(crypto.getRandomValues(new Uint8Array(12))), day: today() };
-  await enforceVisitorLimits(env, db, vid, session);
+  await enforceVisitorLimits(env, db, nid, session);
   await enforceGlobalAiLimit(env, db);
 
   const messages = [
@@ -469,7 +495,8 @@ async function handleStart(request, env, db, body) {
   // Only a successful start counts as an interview, so an AI outage never
   // uses up someone's daily interviews.
   await bump(db, "global:interviews");
-  await bump(db, `v:${vid}:interviews`);
+  await bump(db, `v:${nid}:interviews`);
+  await bump(db, `b:${bid}:interviews`);
   await Promise.all([
     stat(db, "started"), stat(db, `type:${setup.type}`), stat(db, `style:${setup.style}`), stat(db, `lang:${setup.language}`),
   ]);
@@ -484,8 +511,8 @@ async function handleTurn(request, env, db, body, mode) {
   const msgs = validateMessages(body.messages);
   await verifyRecruiterMessages(db, session.sid, msgs);
 
-  const vid = await visitorId(request, db);
-  await enforceVisitorLimits(env, db, vid, session);
+  const nid = await networkId(request, db);
+  await enforceVisitorLimits(env, db, nid, session);
 
   // Earlier answers were already checked when they were sent; if one of them
   // now contains a trick, the conversation was edited in the browser.

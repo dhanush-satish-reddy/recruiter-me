@@ -14,8 +14,6 @@ window.RM_CONFIG = (() => {
     OWNER_NAME: "Dhanush Satish Reddy",
     OWNER_LINKEDIN: "https://www.linkedin.com/in/dhanushreddy05",
     OWNER_CONTACT_URL: "https://dhanush-satish-reddy.github.io/#contact",
-    OWNER_WEBSITE: "https://dhanush-satish-reddy.github.io",
-    REPO_URL: "https://github.com/dhanush-satish-reddy/recruiter-me",
 
     LIMITS: { jobAd: 6000, answer: 1200 },
   };

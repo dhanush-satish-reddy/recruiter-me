@@ -1,10 +1,10 @@
 // Prompt building. The CORE_RULES are fixed in code on purpose: they are the
 // safety layer and must not be weakened by editing the playbook.
 import PLAYBOOK from "./playbook.md";
+import { CANARY } from "./guards.js";
 
-// A random marker placed in the system prompt. If it ever shows up in a model
-// reply, the model is leaking its instructions and the reply is blocked.
-export const CANARY = "RM-CANARY-7F3A9C";
+export { CANARY };
+export { looksLikeInjection } from "./guards.js";
 
 export const TYPES = ["werkstudent", "internship", "entry", "jobad"];
 export const STYLES = ["friendly", "realistic", "tough"];
@@ -84,23 +84,4 @@ SETUP:
 - Interview type: ${setup.type}
 - Style: ${setup.style}
 ${jobAd}`;
-}
-
-// Cheap first-line filter for the most common injection attempts. It runs
-// before the AI is called, so obvious attacks cost no AI quota. The model's
-// own rules (CORE_RULES) handle everything subtler, in every language.
-const INJECTION_PATTERNS = [
-  /ignore (all |any |the )?(previous|prior|above|earlier) (instructions|rules|prompts?)/i,
-  /disregard (all |any |the )?(previous|prior|above) /i,
-  /(reveal|show|print|repeat|output) (me )?(your|the) (system )?(prompt|instructions|rules)/i,
-  /\bsystem prompt\b/i,
-  /you are now (a|an|the|my) /i,
-  /\b(DAN|jailbreak|developer mode)\b/i,
-  /ignoriere (alle )?(vorherigen|bisherigen|obigen) (anweisungen|regeln)/i,
-  /(zeig|gib|nenne) (mir )?(deinen|den) (system ?prompt|prompt|anweisungen)/i,
-  new RegExp(CANARY, "i"),
-];
-
-export function looksLikeInjection(text) {
-  return INJECTION_PATTERNS.some((re) => re.test(text));
 }
