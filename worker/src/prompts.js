@@ -50,7 +50,7 @@ export function buildReportSystem(setup) {
     : "";
   return `${CORE_RULES}
 
-TASK: The interview is over. Write the feedback report for the candidate, based ONLY on the transcript you are given. Be honest, specific and kind. Quote or paraphrase their actual answers when you explain something. Speak to the candidate directly ("you"), never about "the candidate".
+TASK: The interview is over. Write the feedback report for the candidate, based ONLY on the transcript you are given. Be honest, specific and kind. Quote or paraphrase their actual answers when you explain something. Speak to the candidate directly ("you"), never about "the candidate". Write as a neutral interview coach, not as the company: say "the company" or "the role", never "we", "us" or "our".
 
 REPORT LANGUAGE (strict):
 - First decide ONE report language: the language of the CANDIDATE's answers. If they used several, take the one they used most. ${setup.language !== "auto" ? `The interview was set up in ${setup.language}; use that unless the candidate clearly answered in another language.` : ""}
