@@ -102,7 +102,6 @@
 
     $("ownerLink").textContent = C.OWNER_NAME;
     $("ownerLink").href = C.OWNER_LINKEDIN;
-    $("repoLink").href = C.REPO_URL;
 
     updateJobAdCount();
     updateAnswerCount();
