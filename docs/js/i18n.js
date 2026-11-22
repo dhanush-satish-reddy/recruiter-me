@@ -9,11 +9,14 @@ window.RM_HERO_QUESTIONS = [
   { lang: "fr", text: "Parlez-moi\nde vous." },
   { lang: "pt", text: "Fale-me\nsobre você." },
   { lang: "it", text: "Parlami\ndi te." },
+  { lang: "tr", text: "Bana kendinden\nbahset." },
   { lang: "hi", text: "अपने बारे में\nबताइए।" },
   { lang: "kn", text: "ನಿಮ್ಮ ಬಗ್ಗೆ\nಹೇಳಿ." },
   { lang: "te", text: "మీ గురించి\nచెప్పండి." },
   { lang: "ta", text: "உங்களைப் பற்றி\nசொல்லுங்கள்." },
   { lang: "pa", text: "ਆਪਣੇ ਬਾਰੇ\nਦੱਸੋ।" },
+  { lang: "ja", text: "自己紹介を\nどうぞ。" },
+  { lang: "zh", text: "请介绍一下\n你自己。" },
 ];
 
 window.RM_TEXT = {
@@ -227,5 +230,5 @@ window.RM_LANGUAGES = [
   ["Français", "Français"], ["Italiano", "Italiano"], ["Português", "Português"],
   ["Nederlands", "Nederlands"], ["Polski", "Polski"], ["Türkçe", "Türkçe"],
   ["हिन्दी", "हिन्दी (Hindi)"], ["ಕನ್ನಡ", "ಕನ್ನಡ (Kannada)"], ["తెలుగు", "తెలుగు (Telugu)"],
-  ["தமிழ்", "தமிழ் (Tamil)"], ["ਪੰਜਾਬੀ", "ਪੰਜਾਬੀ (Punjabi)"], ["العربية", "العربية (Arabic)"], ["中文", "中文 (Chinese)"],
+  ["தமிழ்", "தமிழ் (Tamil)"], ["ਪੰਜਾਬੀ", "ਪੰਜਾਬੀ (Punjabi)"], ["العربية", "العربية (Arabic)"], ["中文", "中文 (Chinese)"], ["日本語", "日本語 (Japanese)"],
 ];

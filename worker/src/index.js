@@ -21,7 +21,7 @@ const LIMITS = {
 
 const LANGUAGES = [
   "auto", "English", "Deutsch", "Español", "Français", "Italiano", "Português",
-  "Nederlands", "Polski", "Türkçe", "हिन्दी", "ಕನ್ನಡ", "తెలుగు", "தமிழ்", "ਪੰਜਾਬੀ", "العربية", "中文",
+  "Nederlands", "Polski", "Türkçe", "हिन्दी", "ಕನ್ನಡ", "తెలుగు", "தமிழ்", "ਪੰਜਾਬੀ", "العربية", "中文", "日本語",
 ];
 
 // ---------- helpers ----------
