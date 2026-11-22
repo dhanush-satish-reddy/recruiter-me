@@ -1,16 +1,18 @@
 // All interface texts in English and German.
 // The INTERVIEW itself can run in many more languages (chosen in the form).
-// Hero question, in this order, looping continuously.
+// Hero question, in this order, looping continuously: European languages first, then Indian languages.
 window.RM_HERO_QUESTIONS = [
   { lang: "en", text: "Tell me about yourself." },
   { lang: "de", text: "Erzähl mal etwas über dich." },
   { lang: "es", text: "Háblame de ti." },
   { lang: "fr", text: "Parlez-moi de vous." },
   { lang: "pt", text: "Fale-me sobre você." },
+  { lang: "it", text: "Parlami di te." },
   { lang: "hi", text: "अपने बारे में बताइए।" },
   { lang: "kn", text: "ನಿಮ್ಮ ಬಗ್ಗೆ ಹೇಳಿ." },
   { lang: "te", text: "మీ గురించి చెప్పండి." },
   { lang: "ta", text: "உங்களைப் பற்றி சொல்லுங்கள்." },
+  { lang: "pa", text: "ਆਪਣੇ ਬਾਰੇ ਦੱਸੋ।" },
 ];
 
 window.RM_TEXT = {
@@ -224,5 +226,5 @@ window.RM_LANGUAGES = [
   ["Français", "Français"], ["Italiano", "Italiano"], ["Português", "Português"],
   ["Nederlands", "Nederlands"], ["Polski", "Polski"], ["Türkçe", "Türkçe"],
   ["हिन्दी", "हिन्दी (Hindi)"], ["ಕನ್ನಡ", "ಕನ್ನಡ (Kannada)"], ["తెలుగు", "తెలుగు (Telugu)"],
-  ["தமிழ்", "தமிழ் (Tamil)"], ["العربية", "العربية (Arabic)"], ["中文", "中文 (Chinese)"],
+  ["தமிழ்", "தமிழ் (Tamil)"], ["ਪੰਜਾਬੀ", "ਪੰਜਾਬੀ (Punjabi)"], ["العربية", "العربية (Arabic)"], ["中文", "中文 (Chinese)"],
 ];
