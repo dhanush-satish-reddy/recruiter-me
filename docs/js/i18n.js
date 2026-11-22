@@ -109,7 +109,6 @@ window.RM_TEXT = {
     footerBuilt: "Built by",
     footerCode: "Source code on GitHub",
     footerPrivacy: "Privacy",
-    footerImprint: "Imprint",
   },
 
   de: {
@@ -209,7 +208,6 @@ window.RM_TEXT = {
     footerBuilt: "Entwickelt von",
     footerCode: "Quellcode auf GitHub",
     footerPrivacy: "Datenschutz",
-    footerImprint: "Impressum",
   },
 };
 

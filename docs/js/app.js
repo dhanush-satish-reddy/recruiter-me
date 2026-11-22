@@ -102,9 +102,7 @@
 
     $("ownerLink").textContent = C.OWNER_NAME;
     $("ownerLink").href = C.OWNER_LINKEDIN;
-    $("ownerMail").href = `mailto:${C.OWNER_EMAIL}`;
     $("repoLink").href = C.REPO_URL;
-    $("imprintLink").href = C.OWNER_WEBSITE;
 
     updateJobAdCount();
     updateAnswerCount();

@@ -13,7 +13,7 @@ window.RM_CONFIG = (() => {
     // Builder credit in the footer
     OWNER_NAME: "Dhanush Satish Reddy",
     OWNER_LINKEDIN: "https://www.linkedin.com/in/dhanushreddy05",
-    OWNER_EMAIL: "REPLACE-WITH-EMAIL",
+    OWNER_CONTACT_URL: "https://dhanush-satish-reddy.github.io/#contact",
     OWNER_WEBSITE: "https://dhanush-satish-reddy.github.io",
     REPO_URL: "https://github.com/dhanush-satish-reddy/recruiter-me",
 
