@@ -7,7 +7,8 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Recruiter-Me · Practise job interviews with an AI recruiter</title>
   <meta name="description" content="Practise a job interview with an AI recruiter in your language and get an honest scorecard. Free, no sign-up, nothing stored.">
-  <meta name="theme-color" content="#16243D">
+  <meta name="theme-color" content="#F4F5F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0F1724" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
   <meta property="og:type" content="website">
@@ -20,6 +21,7 @@
   <meta name="twitter:card" content="summary_large_image">
 
   <link rel="preload" href="fonts/newsreader-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <script src="js/theme.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-view="home">
@@ -30,7 +32,10 @@
       <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7h20v13H15l-6 5v-5H6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M11 13.5h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       <span>Recruiter-Me</span>
     </a>
-    <button class="lang-switch" type="button" id="langSwitch" data-t="langSwitch">Deutsch</button>
+    <div class="bar-actions">
+      <button class="theme-switch" type="button" id="themeSwitch" aria-label="Switch to dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="i-moon" d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/><g class="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></button>
+      <button class="lang-switch" type="button" id="langSwitch" data-t="langSwitch">Deutsch</button>
+    </div>
   </header>
 
   <!-- HOME + SETUP -->

@@ -84,6 +84,7 @@
       if (typeof v === "string") el.textContent = v;
     });
     $("langSwitch").setAttribute("aria-label", tx.langSwitchLabel);
+    if ($("themeSwitch") && document.documentElement.classList) refreshThemeButtonSafe();
     $("langSwitch").lang = state.lang === "de" ? "en" : "de";
 
     $("stepsList").innerHTML = tx.steps
@@ -107,6 +108,10 @@
     updateAnswerCount();
     if (state.setup) renderAgenda();
     if (!$("report").hidden && state.lastReport) renderReport(state.lastReport);
+  }
+
+  function refreshThemeButtonSafe() {
+    try { refreshThemeButton(); } catch { /* not ready yet during first render */ }
   }
 
   function renderChoices(containerId, name, items, fallback) {
@@ -177,6 +182,7 @@
         sitekey: C.TURNSTILE_SITE_KEY,
         appearance: "interaction-only",
         language: state.lang,
+        theme: isDark() ? "dark" : "light",
       });
     };
     const s = document.createElement("script");
@@ -478,6 +484,27 @@
     $("setup").focus();
   }
 
+  // ---------- light / dark ----------
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const isDark = () => {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === "dark" : darkQuery.matches;
+  };
+  function refreshThemeButton() {
+    const dark = isDark();
+    document.documentElement.classList.toggle("is-dark", dark);
+    const btn = $("themeSwitch");
+    btn.setAttribute("aria-label", dark ? t().themeLight : t().themeDark);
+    btn.title = btn.getAttribute("aria-label");
+  }
+  $("themeSwitch").addEventListener("click", () => {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("rm-theme", next); } catch { /* ignore */ }
+    refreshThemeButton();
+  });
+  darkQuery.addEventListener("change", refreshThemeButton);
+
   // ---------- wire up ----------
   $("langSwitch").addEventListener("click", () => {
     state.lang = state.lang === "de" ? "en" : "de";
@@ -507,6 +534,7 @@
   $("restartBtn").addEventListener("click", () => { if (window.confirm(t().confirmRestart)) resetToHome(); });
 
   applyTexts();
+  refreshThemeButton();
   runHero();
   loadTurnstile();
 })();

@@ -51,6 +51,9 @@
   --brass: #9C7A38;
   --brass-text: #7A5E26;
   --error: #9B2C2C;
+  --error-bg: #F6E9E7;
+  --field-border: #B9BEB6;
+  color-scheme: light;
 
   --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Noto Serif", serif;
   --sans: "Hanken Grotesk", "Segoe UI", system-ui, -apple-system, "Noto Sans", sans-serif;
@@ -198,7 +201,7 @@ a:hover { text-decoration-thickness: 2px; }
 
 textarea, select {
   width: 100%; font: 400 var(--step-0)/1.5 var(--sans); color: var(--ink);
-  background: var(--white); border: 1px solid #B9BEB6; border-radius: var(--radius);
+  background: var(--white); border: 1px solid var(--field-border); border-radius: var(--radius);
   padding: .75rem .85rem;
 }
 textarea { resize: vertical; min-height: 7rem; }
@@ -210,7 +213,7 @@ textarea:focus, select:focus { border-color: var(--navy); outline: 2px solid var
 .check input { width: 1.15rem; height: 1.15rem; margin-top: .22rem; accent-color: var(--navy); flex: none; }
 .small-link { font-size: var(--step--1); margin-left: 1.85rem; }
 .turnstile { margin: 0 0 1.25rem; min-height: 0; }
-.form-error { color: var(--error); background: #F6E9E7; border-left: 3px solid var(--error); padding: .7rem .9rem; margin: 0 0 1.25rem; font-size: .98rem; }
+.form-error { color: var(--error); background: var(--error-bg); border-left: 3px solid var(--error); padding: .7rem .9rem; margin: 0 0 1.25rem; font-size: .98rem; }
 
 /* ---------- interview room ---------- */
 .room {
@@ -292,6 +295,44 @@ details.transcript-box summary { cursor: pointer; font-weight: 600; color: var(-
 .sheet-actions { display: flex; flex-wrap: wrap; gap: .75rem; border-top: 1px solid var(--rule); padding-top: 1.5rem; }
 .ai-note { color: var(--slate); font-size: var(--step--1); margin: 1rem 0 0; }
 
+
+/* ---------- dark version ----------
+   "Interview room at night": deep navy surfaces, paper-white text, brass accents.
+   Follows the device setting; the sun/moon button overrides it. */
+:root[data-theme="dark"] {
+  --navy: #E8EBF1;        /* headings, primary buttons and marks turn light */
+  --navy-2: #FFFFFF;
+  --paper: #0F1724;       /* page background */
+  --white: #172133;       /* cards, form fields, scorecard sheet */
+  --ink: #E3E7EE;
+  --slate: #9AA5B8;
+  --rule: #2A3549;
+  --panel: #1F2B40;       /* your answers */
+  --brass: #C9A55C;
+  --brass-text: #D8B871;
+  --error: #F0A3A3;
+  --error-bg: #2E1C22;
+  --field-border: #3A4760;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --navy: #E8EBF1; --navy-2: #FFFFFF; --paper: #0F1724; --white: #172133; --ink: #E3E7EE;
+    --slate: #9AA5B8; --rule: #2A3549; --panel: #1F2B40; --brass: #C9A55C; --brass-text: #D8B871;
+    --error: #F0A3A3; --error-bg: #2E1C22; --field-border: #3A4760; color-scheme: dark;
+  }
+}
+.theme-switch {
+  display: inline-grid; place-items: center; width: 2.3rem; height: 2.3rem; padding: 0;
+  color: var(--navy); background: transparent; border: 1px solid var(--rule); border-radius: 999px; cursor: pointer;
+}
+.theme-switch:hover { border-color: var(--navy); }
+.theme-switch svg { width: 1.05rem; height: 1.05rem; }
+.theme-switch .i-sun { display: none; }
+.is-dark .theme-switch .i-sun { display: inline; }
+.is-dark .theme-switch .i-moon { display: none; }
+.bar-actions { display: flex; align-items: center; gap: .5rem; }
+
 /* ---------- footer ---------- */
 .foot { max-width: var(--wrap); width: 100%; margin: 0 auto; padding: 2.5rem 1.5rem 2.5rem; color: var(--slate); font-size: var(--step--1); }
 .foot p { margin: 0; display: flex; flex-wrap: wrap; gap: .35rem .6rem; }
@@ -339,6 +380,10 @@ body[data-view="interview"] .foot { display: none; }
 
 /* ---------- print / Save as PDF ---------- */
 @media print {
+  :root, :root[data-theme="dark"] {
+    --navy: #16243D; --paper: #FFFFFF; --white: #FFFFFF; --ink: #1D2430; --slate: #5E6878;
+    --rule: #D9DCD6; --panel: #E8EBE6; --brass: #9C7A38; --brass-text: #7A5E26; color-scheme: light;
+  }
   body { background: #fff; }
   .bar, .foot, .sheet-actions, .skip { display: none !important; }
   .sheet { border: 0; margin: 0; padding: 0; max-width: none; }
